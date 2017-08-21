@@ -21,6 +21,66 @@
        <string>Generator Control</string>
       </property>
       <layout class="QGridLayout" name="gridLayout_2" columnstretch="1,2,1,2">
+       <item row="4" column="0">
+        <widget class="QLabel" name="label_6">
+         <property name="text">
+          <string>Step Size</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="2">
+        <widget class="QLabel" name="label_7">
+         <property name="text">
+          <string>Run Time</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="3">
+        <widget class="QLineEdit" name="lineEdit_RunTime">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
+        </widget>
+       </item>
+       <item row="5" column="3" rowspan="3">
+        <widget class="QPushButton" name="pushButton_RFonoff">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+           <horstretch>30</horstretch>
+           <verstretch>30</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="minimumSize">
+          <size>
+           <width>80</width>
+           <height>30</height>
+          </size>
+         </property>
+         <property name="font">
+          <font>
+           <pointsize>11</pointsize>
+           <weight>75</weight>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="text">
+          <string>Sweep</string>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="1">
+        <widget class="QLineEdit" name="lineEdit_StepSize">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
+        </widget>
+       </item>
        <item row="0" column="2">
         <widget class="QLabel" name="label_2">
          <property name="text">
@@ -47,6 +107,16 @@
        <item row="0" column="1">
         <widget class="QLineEdit" name="lineEdit_Points"/>
        </item>
+       <item row="3" column="2">
+        <widget class="QLabel" name="label_3">
+         <property name="text">
+          <string>Stop [MHz]</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+         </property>
+        </widget>
+       </item>
        <item row="0" column="0">
         <widget class="QLabel" name="label">
          <property name="text">
@@ -60,30 +130,30 @@
        <item row="0" column="3">
         <widget class="QLineEdit" name="lineEdit_Start"/>
        </item>
-       <item row="3" column="2">
-        <widget class="QLabel" name="label_3">
-         <property name="text">
-          <string>Stop [MHz]</string>
-         </property>
-         <property name="alignment">
-          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-         </property>
-        </widget>
-       </item>
        <item row="3" column="3">
         <widget class="QLineEdit" name="lineEdit_Stop"/>
        </item>
-       <item row="4" column="0">
+       <item row="7" column="2">
+        <widget class="QPushButton" name="pushButton_SendCommand">
+         <property name="text">
+          <string>Send Command</string>
+         </property>
+        </widget>
+       </item>
+       <item row="7" column="0" colspan="2">
+        <widget class="QLineEdit" name="lineEdit"/>
+       </item>
+       <item row="5" column="0">
         <widget class="QLabel" name="label_5">
          <property name="text">
-          <string>Attenuator</string>
+          <string>Attenuator[dB]</string>
          </property>
          <property name="alignment">
           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
          </property>
         </widget>
        </item>
-       <item row="4" column="1">
+       <item row="5" column="1">
         <widget class="QDoubleSpinBox" name="doubleSpinBox">
          <property name="alignment">
           <set>Qt::AlignCenter</set>
@@ -99,39 +169,32 @@
          </property>
         </widget>
        </item>
-       <item row="6" column="2">
-        <widget class="QPushButton" name="pushButton_SendCommand">
+       <item row="6" column="0">
+        <widget class="QLabel" name="label_8">
          <property name="text">
-          <string>Send Command</string>
+          <string>Power [%]</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
          </property>
         </widget>
        </item>
-       <item row="6" column="0" colspan="2">
-        <widget class="QLineEdit" name="lineEdit"/>
-       </item>
-       <item row="4" column="3" rowspan="3">
-        <widget class="QPushButton" name="pushButton_RFonoff">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-           <horstretch>30</horstretch>
-           <verstretch>30</verstretch>
-          </sizepolicy>
+       <item row="6" column="1">
+        <widget class="QDoubleSpinBox" name="doubleSpinBox_Power">
+         <property name="alignment">
+          <set>Qt::AlignCenter</set>
          </property>
-         <property name="minimumSize">
-          <size>
-           <width>80</width>
-           <height>30</height>
-          </size>
+         <property name="decimals">
+          <number>1</number>
          </property>
-         <property name="font">
-          <font>
-           <pointsize>11</pointsize>
-           <weight>75</weight>
-           <bold>true</bold>
-          </font>
+         <property name="maximum">
+          <double>100.000000000000000</double>
          </property>
-         <property name="text">
-          <string>Sweep</string>
+         <property name="singleStep">
+          <double>0.100000000000000</double>
+         </property>
+         <property name="value">
+          <double>100.000000000000000</double>
          </property>
         </widget>
        </item>
@@ -139,9 +202,7 @@
      </widget>
     </item>
     <item>
-     <widget class="QCustomPlot" name="powerPlot" native="true">
-      <zorder>groupBox_Control</zorder>
-     </widget>
+     <widget class="QCustomPlot" name="powerPlot" native="true"/>
     </item>
     <item>
      <widget class="QGroupBox" name="groupBox_Log">
@@ -191,6 +252,20 @@
    <container>1</container>
   </customwidget>
  </customwidgets>
+ <tabstops>
+  <tabstop>lineEdit</tabstop>
+  <tabstop>lineEdit_Points</tabstop>
+  <tabstop>lineEdit_Dwell</tabstop>
+  <tabstop>lineEdit_Start</tabstop>
+  <tabstop>lineEdit_Stop</tabstop>
+  <tabstop>doubleSpinBox</tabstop>
+  <tabstop>doubleSpinBox_Power</tabstop>
+  <tabstop>pushButton_SendCommand</tabstop>
+  <tabstop>pushButton_RFonoff</tabstop>
+  <tabstop>lineEdit_RunTime</tabstop>
+  <tabstop>textEdit_Log</tabstop>
+  <tabstop>lineEdit_StepSize</tabstop>
+ </tabstops>
  <resources/>
  <connections/>
 </ui>

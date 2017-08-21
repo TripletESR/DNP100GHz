@@ -24,7 +24,23 @@ private slots:
 
     void findSeriesPortDevices();
     void write2Device(const QString &msg);
-    QString readFromDevice();
+    void readFromDevice();
+
+    void controlOnOFF(bool IO);
+
+    void on_pushButton_SendCommand_clicked();
+
+    void on_lineEdit_Points_textChanged(const QString &arg1);
+
+    void on_lineEdit_Dwell_textChanged(const QString &arg1);
+
+    void on_lineEdit_Start_textChanged(const QString &arg1);
+
+    void on_lineEdit_Stop_textChanged(const QString &arg1);
+
+    void on_doubleSpinBox_Power_valueChanged(double arg1);
+
+    void on_doubleSpinBox_valueChanged(double arg1);
 
 private:
     Ui::MainWindow *ui;
@@ -35,6 +51,7 @@ private:
     QSerialPort * generator;
 
     QString generatorPortName;
+    QString generatorLastRepond;
 
     bool RFOnOff;
 };

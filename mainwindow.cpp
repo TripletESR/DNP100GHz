@@ -9,6 +9,15 @@ MainWindow::MainWindow(QWidget *parent) :
     plot = ui->powerPlot;
     RFOnOff = false;
 
+    ui->lineEdit_Start->setText("1000");
+    ui->lineEdit_Stop->setText("2000");
+    ui->lineEdit_Points->setText("101");
+    ui->lineEdit_Dwell->setText("5");
+    ui->lineEdit_StepSize->setText("10 MHz");
+    ui->lineEdit_RunTime->setText("~0.505 sec");
+
+    connect(ui->lineEdit, SIGNAL(returnPressed()), this, SLOT(on_pushButton_SendCommand_clicked()));
+
     powerMeter = NULL;
     generatorPortName = "";
     findSeriesPortDevices(); // this locate the generatorPortName;
@@ -29,10 +38,11 @@ MainWindow::MainWindow(QWidget *parent) :
     if(generator->open(QIODevice::ReadWrite)){
         LogMsg(" The generator is connected in " + generatorPortName + ".");
         ui->statusBar->setToolTip( tr("The generator is connected."));
+        controlOnOFF(true);
     }else{
         QMessageBox::critical(this, tr("Error"), generator->errorString());
-
         ui->statusBar->setToolTip(tr("Open error"));
+        controlOnOFF(false);
     }
 
 }
@@ -70,6 +80,39 @@ void MainWindow::on_pushButton_RFonoff_clicked()
     }else{
         ui->pushButton_RFonoff->setStyleSheet("");
     }
+
+    controlOnOFF(!RFOnOff);
+
+
+    write2Device("OUTP:STAT ON"); // switch on RF
+    //Looping
+    double step = ui->lineEdit_StepSize->text().toDouble();
+    double start = ui->lineEdit_Start->text().toDouble();
+    double stop = ui->lineEdit_Stop->text().toDouble();
+    double waitTime = ui->lineEdit_Dwell->text().toDouble(); // in ms;
+
+    //Set graph
+
+
+    for( double freq = start ; freq <= stop; freq += step){
+        QString input;
+        input.sprintf("FREQ:CW %fMHz", freq);
+        write2Device(input);
+
+        //wait for waitTime
+        QEventLoop eventLoop;
+        QTimer::singleShot(waitTime, &eventLoop, SLOT(quit());
+        eventLoop.exec();
+
+        //get powerMeter reading;
+
+
+        // plotgraph
+
+
+    }
+
+    write2Device("OUTP:STAT OFF"); // switch off RF
 }
 
 void MainWindow::findSeriesPortDevices()
@@ -103,14 +146,70 @@ void MainWindow::write2Device(const QString &msg)
     LogMsg("write : " + msg);
 }
 
-QString MainWindow::readFromDevice()
+void MainWindow::readFromDevice()
 {
     QByteArray read = generator->readAll();
     LogMsg("ANS = " + QString(read));
-    return QString(read);
+    generatorLastRepond = QString(read);
+}
+
+void MainWindow::controlOnOFF(bool IO)
+{
+    ui->lineEdit->setEnabled(IO);
+    ui->pushButton_SendCommand->setEnabled(IO);
+    ui->doubleSpinBox->setEnabled(IO);
+    ui->doubleSpinBox_Power->setEnabled(IO);
+    ui->lineEdit_Dwell->setEnabled(IO);
+    ui->lineEdit_Points->setEnabled(IO);
+    ui->lineEdit_Start->setEnabled(IO);
+    ui->lineEdit_Stop->setEnabled(IO);
 }
 
 void MainWindow::on_pushButton_SendCommand_clicked()
 {
     write2Device(ui->lineEdit->text());
+}
+
+void MainWindow::on_lineEdit_Points_textChanged(const QString &arg1)
+{
+    double start = ui->lineEdit_Start->text().toDouble();
+    double stop = ui->lineEdit_Stop->text().toDouble();
+    double step = (stop-start) / (arg1.toInt()-1);
+    double time = ui->lineEdit_Dwell->text().toDouble();
+    double runTime = arg1.toInt() * time / 1000.;
+    ui->lineEdit_StepSize->setText(QString::number(step));
+    ui->lineEdit_RunTime->setText(QString::number(runTime));
+}
+
+void MainWindow::on_lineEdit_Dwell_textChanged(const QString &arg1)
+{
+    int points = ui->lineEdit_Points->text().toInt();
+    double runTime = points * arg1.toDouble() / 1000.;
+    ui->lineEdit_RunTime->setText(QString::number(runTime));
+}
+
+void MainWindow::on_lineEdit_Start_textChanged(const QString &arg1)
+{
+    double stop = ui->lineEdit_Stop->text().toDouble();
+    int points = ui->lineEdit_Points->text().toInt();
+    double step = (stop - arg1.toDouble())/(points-1);
+    ui->lineEdit_StepSize->setText(QString::number(step));
+}
+
+void MainWindow::on_lineEdit_Stop_textChanged(const QString &arg1)
+{
+    double start = ui->lineEdit_Start->text().toDouble();
+    int points = ui->lineEdit_Points->text().toInt();
+    double step = (arg1.toDouble() - start)/(points-1);
+    ui->lineEdit_StepSize->setText(QString::number(step));
+}
+
+void MainWindow::on_doubleSpinBox_Power_valueChanged(double arg1)
+{
+    write2Device("PWR " + QString::number(arg1));
+}
+
+void MainWindow::on_doubleSpinBox_valueChanged(double arg1)
+{
+    write2Device("ATT " + QString::number(arg1));
 }
