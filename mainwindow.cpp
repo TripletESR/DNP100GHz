@@ -7,6 +7,13 @@ MainWindow::MainWindow(QWidget *parent) :
 {
     ui->setupUi(this);
     plot = ui->powerPlot;
+    plot->xAxis->setLabel("freq. [MHz]");
+    plot->yAxis->setLabel("power. [a.u.]");
+    plot->xAxis->setRange(900, 2100);
+    plot->addGraph();
+    plot->graph(0)->setPen(QPen(Qt::blue));
+    plot->replot();
+
     RFOnOff = false;
 
     ui->lineEdit_Start->setText("1000");
@@ -83,36 +90,52 @@ void MainWindow::on_pushButton_RFonoff_clicked()
 
     controlOnOFF(!RFOnOff);
 
+    if(RFOnOff){
+        write2Device("*BUZZER OFF");
 
-    write2Device("OUTP:STAT ON"); // switch on RF
-    //Looping
-    double step = ui->lineEdit_StepSize->text().toDouble();
-    double start = ui->lineEdit_Start->text().toDouble();
-    double stop = ui->lineEdit_Stop->text().toDouble();
-    double waitTime = ui->lineEdit_Dwell->text().toDouble(); // in ms;
+        //write2Device("OUTP:STAT ON"); // switch on RF
+        //Looping
+        QString stepstr = ui->lineEdit_StepSize->text();
+        stepstr.chop(3);
+        double step = stepstr.toDouble();
+        double start = ui->lineEdit_Start->text().toDouble();
+        //double stop = ui->lineEdit_Stop->text().toDouble();
+        int points = ui->lineEdit_Points->text().toInt();
+        double waitTime = ui->lineEdit_Dwell->text().toDouble(); // in ms;
 
-    //Set graph
+        //Set graph
+        QVector<double> x, y;
 
+        qDebug() << points << ", " << step;
+        for( int i = 1 ; i <= points; i ++){
+            double freq = start + (i-1) * step;
+            qDebug() << i << "," <<  freq;
+            QString input;
+            input.sprintf("FREQ:CW %fMHz", freq);
+            write2Device(input);
 
-    for( double freq = start ; freq <= stop; freq += step){
-        QString input;
-        input.sprintf("FREQ:CW %fMHz", freq);
-        write2Device(input);
+            x.push_back(freq);
 
-        //wait for waitTime
-        QEventLoop eventLoop;
-        QTimer::singleShot(waitTime, &eventLoop, SLOT(quit());
-        eventLoop.exec();
+            //wait for waitTime
+            QEventLoop eventLoop;
+            QTimer::singleShot(waitTime, &eventLoop, SLOT(quit()));
+            eventLoop.exec();
 
-        //get powerMeter reading;
+            //get powerMeter reading;
+            y.push_back(sin(0.1*i));
 
+            // plotgraph
+            plot->graph(0)->clearData();
+            plot->graph(0)->setData(x,y);
+            plot->yAxis->rescale();
+            plot->replot();
 
-        // plotgraph
+        }
 
-
+        //write2Device("OUTP:STAT OFF"); // switch off RF
+        write2Device("*BUZZER ON");
     }
 
-    write2Device("OUTP:STAT OFF"); // switch off RF
 }
 
 void MainWindow::findSeriesPortDevices()
@@ -177,31 +200,39 @@ void MainWindow::on_lineEdit_Points_textChanged(const QString &arg1)
     double step = (stop-start) / (arg1.toInt()-1);
     double time = ui->lineEdit_Dwell->text().toDouble();
     double runTime = arg1.toInt() * time / 1000.;
-    ui->lineEdit_StepSize->setText(QString::number(step));
-    ui->lineEdit_RunTime->setText(QString::number(runTime));
+    ui->lineEdit_StepSize->setText(QString::number(step) + " MHz");
+    ui->lineEdit_RunTime->setText(QString::number(runTime) + " sec");
 }
 
 void MainWindow::on_lineEdit_Dwell_textChanged(const QString &arg1)
 {
     int points = ui->lineEdit_Points->text().toInt();
     double runTime = points * arg1.toDouble() / 1000.;
-    ui->lineEdit_RunTime->setText(QString::number(runTime));
+    ui->lineEdit_RunTime->setText(QString::number(runTime) + " sec");
 }
 
 void MainWindow::on_lineEdit_Start_textChanged(const QString &arg1)
 {
     double stop = ui->lineEdit_Stop->text().toDouble();
     int points = ui->lineEdit_Points->text().toInt();
-    double step = (stop - arg1.toDouble())/(points-1);
-    ui->lineEdit_StepSize->setText(QString::number(step));
+    double range = (stop - arg1.toDouble());
+    double step = range/(points-1);
+    ui->lineEdit_StepSize->setText(QString::number(step) + " MHz");
+
+    plot->xAxis->setRange(arg1.toDouble() - range*0.1, stop +  range*0.1);
+    plot->replot();
 }
 
 void MainWindow::on_lineEdit_Stop_textChanged(const QString &arg1)
 {
     double start = ui->lineEdit_Start->text().toDouble();
     int points = ui->lineEdit_Points->text().toInt();
-    double step = (arg1.toDouble() - start)/(points-1);
-    ui->lineEdit_StepSize->setText(QString::number(step));
+    double range = (arg1.toDouble() - start);
+    double step = range/(points-1);
+    ui->lineEdit_StepSize->setText(QString::number(step) + " MHz");
+
+    plot->xAxis->setRange(start - range*0.1, arg1.toDouble()+  range*0.1);
+    plot->replot();
 }
 
 void MainWindow::on_doubleSpinBox_Power_valueChanged(double arg1)
