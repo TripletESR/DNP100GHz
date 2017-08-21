@@ -23,13 +23,22 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->lineEdit_StepSize->setText("10 MHz");
     ui->lineEdit_RunTime->setText("~0.505 sec");
 
-    connect(ui->lineEdit, SIGNAL(returnPressed()), this, SLOT(on_pushButton_SendCommand_clicked()));
+    //============== opne power meter
+    powerMeter = new QSCPI("USB0::0x2A8D::0x1601::MY53102568::0::INSTR"); // DMM
+    if( powerMeter->status == VI_SUCCESS){
+        LogMsg("power meter online.");
+    }else{
+        LogMsg("Power meter cannot be found.");
+    }
+    sprintf(powerMeter->cmd, ":configure:voltage:DC\n");
+    powerMeter->SendCmd(powerMeter->cmd);
 
-    powerMeter = NULL;
+
+
+    //============= open generator;
     generatorPortName = "";
     findSeriesPortDevices(); // this locate the generatorPortName;
 
-    //============= open generator;
     generator = new QSerialPort(this);    
     generator->setPortName(generatorPortName);
     generator->setBaudRate(QSerialPort::Baud115200);
@@ -38,6 +47,7 @@ MainWindow::MainWindow(QWidget *parent) :
     generator->setStopBits(QSerialPort::OneStop);
     generator->setFlowControl(QSerialPort::NoFlowControl);
 
+    connect(ui->lineEdit, SIGNAL(returnPressed()), this, SLOT(on_pushButton_SendCommand_clicked()));
     //connect(generator, static_cast<void (QSerialPort::*)(QSerialPort::SerialPortError)>(&QSerialPort::error),
     //        this, &MainWindow::handleError);
     connect(generator, &QSerialPort::readyRead, this, &MainWindow::readFromDevice);
@@ -47,7 +57,8 @@ MainWindow::MainWindow(QWidget *parent) :
         ui->statusBar->setToolTip( tr("The generator is connected."));
         controlOnOFF(true);
     }else{
-        QMessageBox::critical(this, tr("Error"), generator->errorString());
+        //QMessageBox::critical(this, tr("Error"), generator->errorString());
+        LogMsg(" The generator cannot be found on any COM port.");
         ui->statusBar->setToolTip(tr("Open error"));
         controlOnOFF(false);
     }
@@ -140,8 +151,8 @@ void MainWindow::on_pushButton_RFonoff_clicked()
 void MainWindow::findSeriesPortDevices()
 {
     //static const char blankString[] = QT_TRANSLATE_NOOP("SettingsDialog", "N/A");
-
-    LogMsg("found Ports:");
+    LogMsg("--------------");
+    LogMsg("found COM Ports:");
     const auto infos = QSerialPortInfo::availablePorts();
     for (const QSerialPortInfo &info : infos) {
         //LogMsg("PortName     ="+info.portName()                                                                         );
@@ -159,6 +170,7 @@ void MainWindow::findSeriesPortDevices()
             generatorPortName = info.portName();
         }
     }
+    LogMsg ("--------------");
 }
 
 void MainWindow::write2Device(const QString &msg)
