@@ -57,8 +57,6 @@ void MainWindow::LogMsg(QString str)
 
 void MainWindow::on_pushButton_RFonoff_clicked()
 {
-    write2Device(ui->lineEdit->text());
-
     if(RFOnOff){
         RFOnOff = false;
     }else{
@@ -108,7 +106,11 @@ void MainWindow::write2Device(const QString &msg)
 QString MainWindow::readFromDevice()
 {
     QByteArray read = generator->readAll();
-
     LogMsg("ANS = " + QString(read));
     return QString(read);
+}
+
+void MainWindow::on_pushButton_SendCommand_clicked()
+{
+    write2Device(ui->lineEdit->text());
 }
