@@ -10,20 +10,24 @@ MainWindow::MainWindow(QWidget *parent) :
     RFOnOff = false;
 
     powerMeter = NULL;
-
-    findSeriesPortDevices();
+    generatorPortName = "";
+    findSeriesPortDevices(); // this locate the generatorPortName;
 
     //============= open generator;
-    generator = new QSerialPort(this);
-    generator->setPortName("COM3");
+    generator = new QSerialPort(this);    
+    generator->setPortName(generatorPortName);
     generator->setBaudRate(QSerialPort::Baud115200);
     generator->setDataBits(QSerialPort::Data8);
     generator->setParity(QSerialPort::NoParity);
     generator->setStopBits(QSerialPort::OneStop);
     generator->setFlowControl(QSerialPort::NoFlowControl);
 
+    //connect(generator, static_cast<void (QSerialPort::*)(QSerialPort::SerialPortError)>(&QSerialPort::error),
+    //        this, &MainWindow::handleError);
+    connect(generator, &QSerialPort::readyRead, this, &MainWindow::readFromDevice);
+
     if(generator->open(QIODevice::ReadWrite)){
-        LogMsg(" The generator is connected.");
+        LogMsg(" The generator is connected in " + generatorPortName + ".");
         ui->statusBar->setToolTip( tr("The generator is connected."));
     }else{
         QMessageBox::critical(this, tr("Error"), generator->errorString());
@@ -53,8 +57,7 @@ void MainWindow::LogMsg(QString str)
 
 void MainWindow::on_pushButton_RFonoff_clicked()
 {
-    write2Device("*IDN?");
-    readFromDevice();
+    write2Device(ui->lineEdit->text());
 
     if(RFOnOff){
         RFOnOff = false;
@@ -62,7 +65,7 @@ void MainWindow::on_pushButton_RFonoff_clicked()
         RFOnOff = true;
     }
 
-    qDebug() << ui->pushButton_RFonoff->styleSheet();
+    //qDebug() << ui->pushButton_RFonoff->styleSheet();
 
     if(RFOnOff){
         ui->pushButton_RFonoff->setStyleSheet("background-color: rgb(0,255,0)");
@@ -73,18 +76,25 @@ void MainWindow::on_pushButton_RFonoff_clicked()
 
 void MainWindow::findSeriesPortDevices()
 {
-    static const char blankString[] = QT_TRANSLATE_NOOP("SettingsDialog", "N/A");
+    //static const char blankString[] = QT_TRANSLATE_NOOP("SettingsDialog", "N/A");
 
+    LogMsg("found Ports:");
     const auto infos = QSerialPortInfo::availablePorts();
     for (const QSerialPortInfo &info : infos) {
-        LogMsg("PortName     ="+info.portName()                                                                         );
-        LogMsg("description  ="+(!info.description().isEmpty() ?  info.description() : blankString)                                    );
-        LogMsg("manufacturer ="+(!info.manufacturer().isEmpty() ? info.manufacturer() : blankString)                                  );
-        LogMsg("serialNumber ="+(!info.serialNumber().isEmpty() ? info.serialNumber() : blankString)                                  );
-        LogMsg("Location     ="+info.systemLocation()                                                                   );
-        LogMsg("Vendor       ="+(info.vendorIdentifier() ? QString::number(info.vendorIdentifier(), 16) : blankString)  );
-        LogMsg("Identifier   ="+(info.productIdentifier() ? QString::number(info.productIdentifier(), 16) : blankString));
-        LogMsg("=======================");
+        //LogMsg("PortName     ="+info.portName()                                                                         );
+        //LogMsg("description  ="+(!info.description().isEmpty() ?  info.description() : blankString)                                    );
+        //LogMsg("manufacturer ="+(!info.manufacturer().isEmpty() ? info.manufacturer() : blankString)                                  );
+        //LogMsg("serialNumber ="+(!info.serialNumber().isEmpty() ? info.serialNumber() : blankString)                                  );
+        //LogMsg("Location     ="+info.systemLocation()                                                                   );
+        //LogMsg("Vendor       ="+(info.vendorIdentifier() ? QString::number(info.vendorIdentifier(), 16) : blankString)  );
+        //LogMsg("Identifier   ="+(info.productIdentifier() ? QString::number(info.productIdentifier(), 16) : blankString));
+        //LogMsg("=======================");
+
+        LogMsg(info.portName());
+
+        if(info.serialNumber() == "DQ000VJLA" && info.manufacturer() == "FTDI" ){
+            generatorPortName = info.portName();
+        }
     }
 }
 
@@ -98,6 +108,7 @@ void MainWindow::write2Device(const QString &msg)
 QString MainWindow::readFromDevice()
 {
     QByteArray read = generator->readAll();
-    LogMsg("repond? "+QString(read));
+
+    LogMsg("ANS = " + QString(read));
     return QString(read);
 }

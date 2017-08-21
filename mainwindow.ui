@@ -23,8 +23,8 @@
       <widget class="QPushButton" name="pushButton_RFonoff">
        <property name="geometry">
         <rect>
-         <x>300</x>
-         <y>140</y>
+         <x>260</x>
+         <y>40</y>
          <width>111</width>
          <height>31</height>
         </rect>
@@ -36,8 +36,8 @@
       <widget class="QLineEdit" name="lineEdit">
        <property name="geometry">
         <rect>
-         <x>80</x>
-         <y>30</y>
+         <x>60</x>
+         <y>50</y>
          <width>113</width>
          <height>20</height>
         </rect>

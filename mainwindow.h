@@ -34,6 +34,8 @@ private:
     QSCPI * powerMeter;
     QSerialPort * generator;
 
+    QString generatorPortName;
+
     bool RFOnOff;
 };
 
