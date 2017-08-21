@@ -103,9 +103,8 @@ void MainWindow::on_pushButton_RFonoff_clicked()
         int points = ui->lineEdit_Points->text().toInt();
         double waitTime = ui->lineEdit_Dwell->text().toDouble(); // in ms;
 
-        //Set graph
-        QVector<double> x, y;
-
+        x.clear();
+        y.clear();
         qDebug() << points << ", " << step;
         for( int i = 1 ; i <= points; i ++){
             double freq = start + (i-1) * step;
@@ -243,4 +242,9 @@ void MainWindow::on_doubleSpinBox_Power_valueChanged(double arg1)
 void MainWindow::on_doubleSpinBox_valueChanged(double arg1)
 {
     write2Device("ATT " + QString::number(arg1));
+}
+
+void MainWindow::on_actionSave_Data_triggered()
+{
+
 }

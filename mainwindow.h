@@ -42,6 +42,8 @@ private slots:
 
     void on_doubleSpinBox_valueChanged(double arg1);
 
+    void on_actionSave_Data_triggered();
+
 private:
     Ui::MainWindow *ui;
 
@@ -54,6 +56,8 @@ private:
     QString generatorLastRepond;
 
     bool RFOnOff;
+
+    QVector<double> x, y;
 };
 
 #endif // MAINWINDOW_H
