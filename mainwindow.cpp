@@ -25,6 +25,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
     //============== opne power meter
     powerMeter = new QSCPI("USB0::0x2A8D::0x1601::MY53102568::0::INSTR"); // DMM
+    connect(powerMeter, SIGNAL(SendMsg(QString)), this, SLOT(LogMsg(QString)));
     if( powerMeter->status == VI_SUCCESS){
         LogMsg("power meter online.");
     }else{
@@ -32,7 +33,6 @@ MainWindow::MainWindow(QWidget *parent) :
     }
     sprintf(powerMeter->cmd, ":configure:voltage:DC\n");
     powerMeter->SendCmd(powerMeter->cmd);
-
 
 
     //============= open generator;
@@ -132,6 +132,7 @@ void MainWindow::on_pushButton_RFonoff_clicked()
             eventLoop.exec();
 
             //get powerMeter reading;
+            sprintf(powerMeter->cmd, "");
             y.push_back(sin(0.1*i));
 
             // plotgraph
