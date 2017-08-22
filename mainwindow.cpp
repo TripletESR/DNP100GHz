@@ -9,6 +9,7 @@ MainWindow::MainWindow(QWidget *parent) :
 {
     ui->setupUi(this);
 
+    RFOnOff = false;
     msgCount = 0;
 
     QDateTime date = QDateTime::currentDateTime();
@@ -63,6 +64,7 @@ MainWindow::MainWindow(QWidget *parent) :
         LogMsg("The generator is connected in " + generatorPortName + ".");
         ui->statusBar->setToolTip( tr("The generator is connected."));
         controlOnOFF(true);
+        write2Device("OUTP:STAT OFF");
     }else{
         //QMessageBox::critical(this, tr("Error"), generator->errorString());
         LogMsg("The generator cannot be found on any COM port.");
@@ -114,6 +116,8 @@ void MainWindow::on_pushButton_Sweep_clicked()
     int points = ui->lineEdit_Points->text().toInt();
     double waitTime = ui->lineEdit_Dwell->text().toDouble(); // in ms;
 
+    double yMin, xMin;
+
     x.clear();
     y.clear();
     qDebug() << points << ", " << step;
@@ -136,7 +140,15 @@ void MainWindow::on_pushButton_Sweep_clicked()
         double reading = powerMeter->Ask(powerMeter->cmd).toDouble();
         LogMsg("reading : " + QString::number(reading));
         y.push_back(reading);
-
+        if( i == 1) {
+            yMin = reading;
+            xMin = freq;
+        }else{
+            if( yMin > reading ){
+                yMin = reading;
+                xMin = freq;
+            }
+        }
         // plotgraph
         plot->graph(0)->clearData();
         plot->graph(0)->setData(x,y);
@@ -151,6 +163,10 @@ void MainWindow::on_pushButton_Sweep_clicked()
 
     controlOnOFF(true);
     ui->pushButton_ReadPower->setEnabled(true);
+
+    QString msg;
+    msg.sprintf("Min(x,y) = (%f, %f)", xMin, yMin);
+    LogMsg(msg);
 
 }
 
@@ -354,4 +370,10 @@ void MainWindow::on_actionSave_plot_triggered()
     }else{
         LogMsg("Save Failed.");
     }
+}
+
+
+void MainWindow::on_pushButton_RFOnOff_clicked()
+{
+
 }

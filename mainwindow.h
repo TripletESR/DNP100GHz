@@ -48,6 +48,8 @@ private slots:
 
     void on_actionSave_plot_triggered();
 
+    void on_pushButton_RFOnOff_clicked();
+
 private:
     Ui::MainWindow *ui;
 

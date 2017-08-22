@@ -14,74 +14,49 @@
    <string>DNP 100GHz</string>
   </property>
   <widget class="QWidget" name="centralWidget">
-   <layout class="QVBoxLayout" name="verticalLayout" stretch="1,1,1">
-    <item>
+   <layout class="QGridLayout" name="gridLayout_3" rowstretch="2,2,1,2">
+    <item row="2" column="0">
+     <widget class="QComboBox" name="comboBox_yAxis"/>
+    </item>
+    <item row="2" column="1">
+     <widget class="QLabel" name="label_12">
+      <property name="text">
+       <string>Average</string>
+      </property>
+      <property name="alignment">
+       <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+      </property>
+     </widget>
+    </item>
+    <item row="2" column="2">
+     <widget class="QSpinBox" name="spinBox_Average"/>
+    </item>
+    <item row="1" column="0" colspan="3">
+     <widget class="QCustomPlot" name="powerPlot" native="true"/>
+    </item>
+    <item row="0" column="0" colspan="3">
      <widget class="QGroupBox" name="groupBox_Control">
       <property name="title">
        <string>Generator Control</string>
       </property>
-      <layout class="QGridLayout" name="gridLayout_2" columnstretch="1,2,1,2">
-       <item row="4" column="0">
-        <widget class="QLabel" name="label_6">
-         <property name="text">
-          <string>Step Size</string>
-         </property>
-         <property name="alignment">
-          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-         </property>
-        </widget>
-       </item>
-       <item row="4" column="2">
-        <widget class="QLabel" name="label_7">
-         <property name="text">
-          <string>Run Time</string>
-         </property>
-         <property name="alignment">
-          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-         </property>
-        </widget>
-       </item>
-       <item row="4" column="3">
-        <widget class="QLineEdit" name="lineEdit_RunTime">
-         <property name="enabled">
-          <bool>false</bool>
-         </property>
-        </widget>
-       </item>
-       <item row="4" column="1">
-        <widget class="QLineEdit" name="lineEdit_StepSize">
-         <property name="enabled">
-          <bool>false</bool>
-         </property>
-        </widget>
-       </item>
+      <layout class="QGridLayout" name="gridLayout_2" columnstretch="1,2,1,2,0">
        <item row="0" column="2">
-        <widget class="QLabel" name="label_2">
+        <widget class="QLabel" name="label_9">
          <property name="text">
-          <string>Start [MHz]</string>
+          <string>Multiplier</string>
          </property>
          <property name="alignment">
           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
          </property>
         </widget>
        </item>
-       <item row="3" column="0">
-        <widget class="QLabel" name="label_4">
-         <property name="text">
-          <string>Dwell [ms]</string>
-         </property>
-         <property name="alignment">
-          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-         </property>
-        </widget>
+       <item row="1" column="3">
+        <widget class="QLineEdit" name="lineEdit_Start"/>
        </item>
-       <item row="3" column="1">
-        <widget class="QLineEdit" name="lineEdit_Dwell"/>
-       </item>
-       <item row="0" column="1">
+       <item row="1" column="1">
         <widget class="QLineEdit" name="lineEdit_Points"/>
        </item>
-       <item row="3" column="2">
+       <item row="4" column="2">
         <widget class="QLabel" name="label_3">
          <property name="text">
           <string>Stop [MHz]</string>
@@ -91,7 +66,10 @@
          </property>
         </widget>
        </item>
-       <item row="0" column="0">
+       <item row="4" column="1">
+        <widget class="QLineEdit" name="lineEdit_Dwell"/>
+       </item>
+       <item row="1" column="0">
         <widget class="QLabel" name="label">
          <property name="text">
           <string>Points</string>
@@ -101,27 +79,7 @@
          </property>
         </widget>
        </item>
-       <item row="0" column="3">
-        <widget class="QLineEdit" name="lineEdit_Start"/>
-       </item>
-       <item row="3" column="3">
-        <widget class="QLineEdit" name="lineEdit_Stop"/>
-       </item>
-       <item row="7" column="2">
-        <widget class="QPushButton" name="pushButton_SendCommand">
-         <property name="text">
-          <string>Send Command</string>
-         </property>
-        </widget>
-       </item>
-       <item row="7" column="0" colspan="2">
-        <widget class="QLineEdit" name="lineEdit">
-         <property name="text">
-          <string>&lt;command&gt;</string>
-         </property>
-        </widget>
-       </item>
-       <item row="5" column="0">
+       <item row="6" column="0">
         <widget class="QLabel" name="label_5">
          <property name="text">
           <string>Attenuator[dB]</string>
@@ -131,7 +89,7 @@
          </property>
         </widget>
        </item>
-       <item row="5" column="1">
+       <item row="6" column="1">
         <widget class="QDoubleSpinBox" name="doubleSpinBox">
          <property name="alignment">
           <set>Qt::AlignCenter</set>
@@ -147,17 +105,81 @@
          </property>
         </widget>
        </item>
-       <item row="6" column="0">
-        <widget class="QLabel" name="label_8">
+       <item row="4" column="3">
+        <widget class="QLineEdit" name="lineEdit_Stop"/>
+       </item>
+       <item row="8" column="0" colspan="2">
+        <widget class="QLineEdit" name="lineEdit">
          <property name="text">
-          <string>Power [%]</string>
+          <string>&lt;command&gt;</string>
+         </property>
+        </widget>
+       </item>
+       <item row="8" column="2">
+        <widget class="QPushButton" name="pushButton_SendCommand">
+         <property name="text">
+          <string>Send Command</string>
+         </property>
+        </widget>
+       </item>
+       <item row="5" column="0">
+        <widget class="QLabel" name="label_6">
+         <property name="text">
+          <string>Step Size</string>
          </property>
          <property name="alignment">
           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
          </property>
         </widget>
        </item>
-       <item row="6" column="1">
+       <item row="5" column="1">
+        <widget class="QLineEdit" name="lineEdit_StepSize">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
+        </widget>
+       </item>
+       <item row="5" column="2">
+        <widget class="QLabel" name="label_7">
+         <property name="text">
+          <string>Run Time</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+         </property>
+        </widget>
+       </item>
+       <item row="5" column="3">
+        <widget class="QLineEdit" name="lineEdit_RunTime">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="0">
+        <widget class="QLabel" name="label_4">
+         <property name="text">
+          <string>Dwell [ms]</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="2">
+        <widget class="QLabel" name="label_2">
+         <property name="text">
+          <string>Start [MHz]</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="3">
+        <widget class="QLineEdit" name="lineEdit_Multiplier"/>
+       </item>
+       <item row="7" column="1">
         <widget class="QDoubleSpinBox" name="doubleSpinBox_Power">
          <property name="alignment">
           <set>Qt::AlignCenter</set>
@@ -176,7 +198,45 @@
          </property>
         </widget>
        </item>
-       <item row="5" column="2" rowspan="2" colspan="2">
+       <item row="7" column="0">
+        <widget class="QLabel" name="label_8">
+         <property name="text">
+          <string>Power [%]</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+         </property>
+        </widget>
+       </item>
+       <item row="8" column="3">
+        <widget class="QPushButton" name="pushButton_ReadPower">
+         <property name="text">
+          <string>Power Reading</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="4">
+        <widget class="QLineEdit" name="lineEdit_EffStart">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="4">
+        <widget class="QLineEdit" name="lineEdit_EffStop">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
+        </widget>
+       </item>
+       <item row="8" column="4">
+        <widget class="QPushButton" name="pushButton_RFOnOff">
+         <property name="text">
+          <string>RF OnOff</string>
+         </property>
+        </widget>
+       </item>
+       <item row="6" column="2" rowspan="2" colspan="2">
         <widget class="QPushButton" name="pushButton_Sweep">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
@@ -202,20 +262,40 @@
          </property>
         </widget>
        </item>
-       <item row="7" column="3">
-        <widget class="QPushButton" name="pushButton_ReadPower">
+       <item row="0" column="4">
+        <widget class="QLabel" name="label_11">
          <property name="text">
-          <string>Power Reading</string>
+          <string>Eff. Freq. {MHz]</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignCenter</set>
+         </property>
+        </widget>
+       </item>
+       <item row="5" column="4">
+        <widget class="QLabel" name="label_10">
+         <property name="text">
+          <string>Set Freq [MHz]</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignCenter</set>
+         </property>
+        </widget>
+       </item>
+       <item row="6" column="4">
+        <widget class="QLineEdit" name="lineEdit_Freq"/>
+       </item>
+       <item row="7" column="4">
+        <widget class="QLineEdit" name="lineEdit_EffFreq">
+         <property name="enabled">
+          <bool>false</bool>
          </property>
         </widget>
        </item>
       </layout>
      </widget>
     </item>
-    <item>
-     <widget class="QCustomPlot" name="powerPlot" native="true"/>
-    </item>
-    <item>
+    <item row="3" column="0" colspan="3">
      <widget class="QGroupBox" name="groupBox_Log">
       <property name="title">
        <string>Log</string>
