@@ -1,11 +1,19 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 
+const QString DESKTOP_PATH = QStandardPaths::locate(QStandardPaths::DesktopLocation, QString(), QStandardPaths::LocateDirectory);
+
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+
+    msgCount = 0;
+
+    QDateTime date = QDateTime::currentDateTime();
+    ui->textEdit_Log->append("============ Date : " + date.toString("yyyy-MM-dd HH:mm:ss"));
+
     plot = ui->powerPlot;
     plot->xAxis->setLabel("freq. [MHz]");
     plot->yAxis->setLabel("power. [a.u.]");
@@ -14,26 +22,25 @@ MainWindow::MainWindow(QWidget *parent) :
     plot->graph(0)->setPen(QPen(Qt::blue));
     plot->replot();
 
-    RFOnOff = false;
-
     ui->lineEdit_Start->setText("1000");
     ui->lineEdit_Stop->setText("2000");
     ui->lineEdit_Points->setText("101");
-    ui->lineEdit_Dwell->setText("5");
+    ui->lineEdit_Dwell->setText("100");
     ui->lineEdit_StepSize->setText("10 MHz");
-    ui->lineEdit_RunTime->setText("~0.505 sec");
+    ui->lineEdit_RunTime->setText("~10.100 sec");
 
     //============== opne power meter
     powerMeter = new QSCPI("USB0::0x2A8D::0x1601::MY53102568::0::INSTR"); // DMM
     connect(powerMeter, SIGNAL(SendMsg(QString)), this, SLOT(LogMsg(QString)));
     if( powerMeter->status == VI_SUCCESS){
         LogMsg("power meter online.");
+        ui->pushButton_ReadPower->setEnabled(true);
+        sprintf(powerMeter->cmd, ":configure:voltage:DC\n");
+        powerMeter->SendCmd(powerMeter->cmd);
     }else{
         LogMsg("Power meter cannot be found.");
+        ui->pushButton_ReadPower->setEnabled(false);
     }
-    sprintf(powerMeter->cmd, ":configure:voltage:DC\n");
-    powerMeter->SendCmd(powerMeter->cmd);
-
 
     //============= open generator;
     generatorPortName = "";
@@ -53,12 +60,12 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(generator, &QSerialPort::readyRead, this, &MainWindow::readFromDevice);
 
     if(generator->open(QIODevice::ReadWrite)){
-        LogMsg(" The generator is connected in " + generatorPortName + ".");
+        LogMsg("The generator is connected in " + generatorPortName + ".");
         ui->statusBar->setToolTip( tr("The generator is connected."));
         controlOnOFF(true);
     }else{
         //QMessageBox::critical(this, tr("Error"), generator->errorString());
-        LogMsg(" The generator cannot be found on any COM port.");
+        LogMsg("The generator cannot be found on any COM port.");
         ui->statusBar->setToolTip(tr("Open error"));
         controlOnOFF(false);
     }
@@ -78,6 +85,11 @@ MainWindow::~MainWindow()
 
 void MainWindow::LogMsg(QString str)
 {
+    msgCount ++;
+    QString dateStr = QDateTime::currentDateTime().toString("HH:mm:ss ");
+    QString countStr;
+    countStr.sprintf("[%04d]: ", msgCount);
+    str.insert(0, countStr).insert(0, dateStr);
     ui->textEdit_Log->append(str);
     int max = ui->textEdit_Log->verticalScrollBar()->maximum();
     ui->textEdit_Log->verticalScrollBar()->setValue(max);
@@ -85,67 +97,60 @@ void MainWindow::LogMsg(QString str)
 
 void MainWindow::on_pushButton_RFonoff_clicked()
 {
-    if(RFOnOff){
-        RFOnOff = false;
-    }else{
-        RFOnOff = true;
+
+    controlOnOFF(false);
+    ui->pushButton_ReadPower->setEnabled(false);
+
+    ui->pushButton_RFonoff->setStyleSheet("background-color: rgb(0,255,0)");
+    write2Device("*BUZZER OFF");
+
+    write2Device("OUTP:STAT ON"); // switch on RF
+    //Looping
+    QString stepstr = ui->lineEdit_StepSize->text();
+    stepstr.chop(3);
+    double step = stepstr.toDouble();
+    double start = ui->lineEdit_Start->text().toDouble();
+    //double stop = ui->lineEdit_Stop->text().toDouble();
+    int points = ui->lineEdit_Points->text().toInt();
+    double waitTime = ui->lineEdit_Dwell->text().toDouble(); // in ms;
+
+    x.clear();
+    y.clear();
+    qDebug() << points << ", " << step;
+    for( int i = 1 ; i <= points; i ++){
+        double freq = start + (i-1) * step;
+        qDebug() << i << "," <<  freq;
+        QString input;
+        input.sprintf("FREQ:CW %fMHz", freq);
+        write2Device(input);
+
+        x.push_back(freq);
+
+        //wait for waitTime
+        QEventLoop eventLoop;
+        QTimer::singleShot(waitTime, &eventLoop, SLOT(quit()));
+        eventLoop.exec();
+
+        //get powerMeter reading;
+        sprintf(powerMeter->cmd, ":READ?\n");
+        double reading = powerMeter->Ask(powerMeter->cmd).toDouble();
+        LogMsg("reading : " + QString::number(reading));
+        y.push_back(reading);
+
+        // plotgraph
+        plot->graph(0)->clearData();
+        plot->graph(0)->setData(x,y);
+        plot->yAxis->rescale();
+        plot->replot();
+
     }
 
-    //qDebug() << ui->pushButton_RFonoff->styleSheet();
+    write2Device("OUTP:STAT OFF"); // switch off RF
+    write2Device("*BUZZER ON");
+    ui->pushButton_RFonoff->setStyleSheet("");
 
-    if(RFOnOff){
-        ui->pushButton_RFonoff->setStyleSheet("background-color: rgb(0,255,0)");
-    }else{
-        ui->pushButton_RFonoff->setStyleSheet("");
-    }
-
-    controlOnOFF(!RFOnOff);
-
-    if(RFOnOff){
-        write2Device("*BUZZER OFF");
-
-        //write2Device("OUTP:STAT ON"); // switch on RF
-        //Looping
-        QString stepstr = ui->lineEdit_StepSize->text();
-        stepstr.chop(3);
-        double step = stepstr.toDouble();
-        double start = ui->lineEdit_Start->text().toDouble();
-        //double stop = ui->lineEdit_Stop->text().toDouble();
-        int points = ui->lineEdit_Points->text().toInt();
-        double waitTime = ui->lineEdit_Dwell->text().toDouble(); // in ms;
-
-        x.clear();
-        y.clear();
-        qDebug() << points << ", " << step;
-        for( int i = 1 ; i <= points; i ++){
-            double freq = start + (i-1) * step;
-            qDebug() << i << "," <<  freq;
-            QString input;
-            input.sprintf("FREQ:CW %fMHz", freq);
-            write2Device(input);
-
-            x.push_back(freq);
-
-            //wait for waitTime
-            QEventLoop eventLoop;
-            QTimer::singleShot(waitTime, &eventLoop, SLOT(quit()));
-            eventLoop.exec();
-
-            //get powerMeter reading;
-            sprintf(powerMeter->cmd, "");
-            y.push_back(sin(0.1*i));
-
-            // plotgraph
-            plot->graph(0)->clearData();
-            plot->graph(0)->setData(x,y);
-            plot->yAxis->rescale();
-            plot->replot();
-
-        }
-
-        //write2Device("OUTP:STAT OFF"); // switch off RF
-        write2Device("*BUZZER ON");
-    }
+    controlOnOFF(true);
+    ui->pushButton_ReadPower->setEnabled(true);
 
 }
 
@@ -198,6 +203,7 @@ void MainWindow::controlOnOFF(bool IO)
     ui->lineEdit_Points->setEnabled(IO);
     ui->lineEdit_Start->setEnabled(IO);
     ui->lineEdit_Stop->setEnabled(IO);
+    ui->pushButton_RFonoff->setEnabled(IO);
 }
 
 void MainWindow::on_pushButton_SendCommand_clicked()
@@ -259,5 +265,87 @@ void MainWindow::on_doubleSpinBox_valueChanged(double arg1)
 
 void MainWindow::on_actionSave_Data_triggered()
 {
+    int size = x.size();
 
+    if( x.size() != y.size()) {
+        LogMsg("data corrupt. Please measure again.");
+        return;
+    }
+
+    if( x.size() == 0){
+        LogMsg("no data to save.");
+        return;
+    }
+
+    QDateTime date = QDateTime::currentDateTime();
+    QString fileName = date.toString("yyyyMMdd_HHmmss") + "DNP100GHz.dat";
+    QString filePath = DESKTOP_PATH + "/" + fileName;
+    QFile outfile(filePath);
+
+    outfile.open(QIODevice::WriteOnly);
+
+    QTextStream stream(&outfile);
+    QString lineout;
+
+    lineout.sprintf("###%s", date.toString("yyyy-MM-dd HH:mm:ss\n").toStdString().c_str());
+    stream << lineout;
+    lineout.sprintf("###number of data %d\n", size);
+    stream << lineout;
+    lineout.sprintf("%10s\t%10s\n", "freq.[Mhz]", "Power");
+    stream << lineout;
+
+    for( int i = 0; i < size; i++){
+        lineout.sprintf("%10f\t%10f\n", x[i], y[i]);
+        stream << lineout;
+    }
+
+    stream << "========= end of file =======";
+    outfile.close();
+}
+
+void MainWindow::on_pushButton_ReadPower_clicked()
+{
+    sprintf(powerMeter->cmd, ":READ?\n");
+    double reading = powerMeter->Ask(powerMeter->cmd).toDouble();
+    LogMsg("reading : " + QString::number(reading));
+}
+
+void MainWindow::on_actionSave_plot_triggered()
+{
+    if( x.size() != y.size()) {
+        LogMsg("data corrupt. Please measure again.");
+        return;
+    }
+
+    if( x.size() == 0){
+        LogMsg("no data to save.");
+        return;
+    }
+
+    QFileDialog fileDialog(this);
+    QStringList nameFilterList = {"pdf (*.pdf)", "PNG (*.png)"};
+    fileDialog.setNameFilters(nameFilterList);
+    fileDialog.setDirectory(DESKTOP_PATH);
+    fileDialog.setReadOnly(0);
+    QString fileName;
+    if( fileDialog.exec()){
+        fileName = fileDialog.selectedFiles()[0];
+    }
+
+    bool ok = false;
+    int ph = plot->geometry().height();
+    int pw = plot->geometry().width();
+    if( fileDialog.selectedNameFilter() == nameFilterList[0]){
+        if( fileName.right(4) != ".pdf" ) fileName.append(".pdf");
+        ok = plot->savePdf(fileName, pw, ph );
+    }else{
+        if( fileName.right(4) != ".png" ) fileName.append(".png");
+        ok = plot->savePng(fileName, pw, ph );
+    }
+
+    if( ok ){
+        LogMsg("Saved Time-Plot as " + fileName);
+    }else{
+        LogMsg("Save Failed.");
+    }
 }

@@ -44,6 +44,10 @@ private slots:
 
     void on_actionSave_Data_triggered();
 
+    void on_pushButton_ReadPower_clicked();
+
+    void on_actionSave_plot_triggered();
+
 private:
     Ui::MainWindow *ui;
 
@@ -56,6 +60,7 @@ private:
     QString generatorLastRepond;
 
     bool RFOnOff;
+    int msgCount;
 
     QVector<double> x, y;
 };

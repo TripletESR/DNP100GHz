@@ -48,32 +48,6 @@
          </property>
         </widget>
        </item>
-       <item row="5" column="3" rowspan="3">
-        <widget class="QPushButton" name="pushButton_RFonoff">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-           <horstretch>30</horstretch>
-           <verstretch>30</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="minimumSize">
-          <size>
-           <width>80</width>
-           <height>30</height>
-          </size>
-         </property>
-         <property name="font">
-          <font>
-           <pointsize>11</pointsize>
-           <weight>75</weight>
-           <bold>true</bold>
-          </font>
-         </property>
-         <property name="text">
-          <string>Sweep</string>
-         </property>
-        </widget>
-       </item>
        <item row="4" column="1">
         <widget class="QLineEdit" name="lineEdit_StepSize">
          <property name="enabled">
@@ -202,6 +176,39 @@
          </property>
         </widget>
        </item>
+       <item row="5" column="2" rowspan="2" colspan="2">
+        <widget class="QPushButton" name="pushButton_RFonoff">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+           <horstretch>30</horstretch>
+           <verstretch>30</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="minimumSize">
+          <size>
+           <width>80</width>
+           <height>30</height>
+          </size>
+         </property>
+         <property name="font">
+          <font>
+           <pointsize>11</pointsize>
+           <weight>75</weight>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="text">
+          <string>Sweep</string>
+         </property>
+        </widget>
+       </item>
+       <item row="7" column="3">
+        <widget class="QPushButton" name="pushButton_ReadPower">
+         <property name="text">
+          <string>Power Reading</string>
+         </property>
+        </widget>
+       </item>
       </layout>
      </widget>
     </item>
@@ -236,6 +243,7 @@
      <string>File</string>
     </property>
     <addaction name="actionSave_Data"/>
+    <addaction name="actionSave_plot"/>
    </widget>
    <addaction name="menuFile"/>
   </widget>
@@ -251,6 +259,11 @@
   <action name="actionSave_Data">
    <property name="text">
     <string>Save Data</string>
+   </property>
+  </action>
+  <action name="actionSave_plot">
+   <property name="text">
+    <string>Save plot</string>
    </property>
   </action>
  </widget>
@@ -272,7 +285,6 @@
   <tabstop>doubleSpinBox</tabstop>
   <tabstop>doubleSpinBox_Power</tabstop>
   <tabstop>pushButton_SendCommand</tabstop>
-  <tabstop>pushButton_RFonoff</tabstop>
   <tabstop>lineEdit_RunTime</tabstop>
   <tabstop>textEdit_Log</tabstop>
   <tabstop>lineEdit_StepSize</tabstop>
