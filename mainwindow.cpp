@@ -25,9 +25,9 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->lineEdit_Start->setText("1000");
     ui->lineEdit_Stop->setText("2000");
     ui->lineEdit_Points->setText("101");
-    ui->lineEdit_Dwell->setText("100");
+    ui->lineEdit_Dwell->setText("200");
     ui->lineEdit_StepSize->setText("10 MHz");
-    ui->lineEdit_RunTime->setText("~10.100 sec");
+    ui->lineEdit_RunTime->setText("~20.100 sec");
 
     //============== opne power meter
     powerMeter = new QSCPI("USB0::0x2A8D::0x1601::MY53102568::0::INSTR"); // DMM
@@ -226,7 +226,7 @@ void MainWindow::on_lineEdit_Dwell_textChanged(const QString &arg1)
 {
     int points = ui->lineEdit_Points->text().toInt();
     double runTime = points * arg1.toDouble() / 1000.;
-    ui->lineEdit_RunTime->setText(QString::number(runTime) + " sec");
+    ui->lineEdit_RunTime->setText("~" + QString::number(runTime) + " sec");
     if( arg1.toDouble() < 100){
         LogMsg("The dwell time may be too small for the power meter to respond.");
         LogMsg("Please consider to increase the dwell time.");
@@ -305,13 +305,15 @@ void MainWindow::on_actionSave_Data_triggered()
 
     stream << "========= end of file =======";
     outfile.close();
+
+    LogMsg("saved data to DESKTOP: " + fileName);
 }
 
 void MainWindow::on_pushButton_ReadPower_clicked()
 {
     sprintf(powerMeter->cmd, ":READ?\n");
-    double reading = powerMeter->Ask(powerMeter->cmd).toDouble();
-    LogMsg("reading : " + QString::number(reading));
+    powerMeter->Ask(powerMeter->cmd).toDouble();
+    //LogMsg("reading : " + QString::number(reading));
 }
 
 void MainWindow::on_actionSave_plot_triggered()
