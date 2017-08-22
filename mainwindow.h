@@ -20,7 +20,7 @@ public:
 
 private slots:
     void LogMsg(QString str);
-    void on_pushButton_RFonoff_clicked();
+    void on_pushButton_Sweep_clicked();
 
     void findSeriesPortDevices();
     void write2Device(const QString &msg);

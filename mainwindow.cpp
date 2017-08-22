@@ -95,13 +95,13 @@ void MainWindow::LogMsg(QString str)
     ui->textEdit_Log->verticalScrollBar()->setValue(max);
 }
 
-void MainWindow::on_pushButton_RFonoff_clicked()
+void MainWindow::on_pushButton_Sweep_clicked()
 {
 
     controlOnOFF(false);
     ui->pushButton_ReadPower->setEnabled(false);
 
-    ui->pushButton_RFonoff->setStyleSheet("background-color: rgb(0,255,0)");
+    ui->pushButton_Sweep->setStyleSheet("background-color: rgb(0,255,0)");
     write2Device("*BUZZER OFF");
 
     write2Device("OUTP:STAT ON"); // switch on RF
@@ -147,7 +147,7 @@ void MainWindow::on_pushButton_RFonoff_clicked()
 
     write2Device("OUTP:STAT OFF"); // switch off RF
     write2Device("*BUZZER ON");
-    ui->pushButton_RFonoff->setStyleSheet("");
+    ui->pushButton_Sweep->setStyleSheet("");
 
     controlOnOFF(true);
     ui->pushButton_ReadPower->setEnabled(true);
@@ -170,7 +170,7 @@ void MainWindow::findSeriesPortDevices()
         //LogMsg("Identifier   ="+(info.productIdentifier() ? QString::number(info.productIdentifier(), 16) : blankString));
         //LogMsg("=======================");
 
-        LogMsg(info.portName());
+        LogMsg(info.portName() + ", " + info.serialNumber() + ", " + info.manufacturer());
 
         if(info.serialNumber() == "DQ000VJLA" && info.manufacturer() == "FTDI" ){
             generatorPortName = info.portName();
@@ -203,7 +203,7 @@ void MainWindow::controlOnOFF(bool IO)
     ui->lineEdit_Points->setEnabled(IO);
     ui->lineEdit_Start->setEnabled(IO);
     ui->lineEdit_Stop->setEnabled(IO);
-    ui->pushButton_RFonoff->setEnabled(IO);
+    ui->pushButton_Sweep->setEnabled(IO);
 }
 
 void MainWindow::on_pushButton_SendCommand_clicked()
@@ -227,6 +227,10 @@ void MainWindow::on_lineEdit_Dwell_textChanged(const QString &arg1)
     int points = ui->lineEdit_Points->text().toInt();
     double runTime = points * arg1.toDouble() / 1000.;
     ui->lineEdit_RunTime->setText(QString::number(runTime) + " sec");
+    if( arg1.toDouble() < 100){
+        LogMsg("The dwell time may be too small for the power meter to respond.");
+        LogMsg("Please consider to increase the dwell time.");
+    }
 }
 
 void MainWindow::on_lineEdit_Start_textChanged(const QString &arg1)
