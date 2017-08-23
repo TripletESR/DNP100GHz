@@ -9,7 +9,8 @@ MainWindow::MainWindow(QWidget *parent) :
 {
     ui->setupUi(this);
 
-    RFOnOff = false;
+    rfOnOff = false;
+    sweepOnOff = 0;
     msgCount = 0;
 
     QDateTime date = QDateTime::currentDateTime();
@@ -23,12 +24,17 @@ MainWindow::MainWindow(QWidget *parent) :
     plot->graph(0)->setPen(QPen(Qt::blue));
     plot->replot();
 
-    ui->lineEdit_Start->setText("1000");
-    ui->lineEdit_Stop->setText("2000");
+    ui->lineEdit_Start->setText("4000");
+    ui->lineEdit_Stop->setText("5000");
     ui->lineEdit_Points->setText("101");
     ui->lineEdit_Dwell->setText("200");
     ui->lineEdit_StepSize->setText("10 MHz");
     ui->lineEdit_RunTime->setText("~20.100 sec");
+    ui->lineEdit_Multiplier->setText("1");
+    ui->lineEdit_EffStart->setText("4000");
+    ui->lineEdit_EffStop->setText("5000");
+    ui->lineEdit_Freq->setText("4500");
+    ui->lineEdit_EffFreq->setText("4500");
 
     //============== opne power meter
     powerMeter = new QSCPI("USB0::0x2A8D::0x1601::MY53102568::0::INSTR"); // DMM
@@ -63,13 +69,15 @@ MainWindow::MainWindow(QWidget *parent) :
     if(generator->open(QIODevice::ReadWrite)){
         LogMsg("The generator is connected in " + generatorPortName + ".");
         ui->statusBar->setToolTip( tr("The generator is connected."));
-        controlOnOFF(true);
+        //controlOnOFF(true);
+        //ui->pushButton_Sweep->setEnabled(true);
         write2Device("OUTP:STAT OFF");
     }else{
         //QMessageBox::critical(this, tr("Error"), generator->errorString());
         LogMsg("The generator cannot be found on any COM port.");
         ui->statusBar->setToolTip(tr("Open error"));
-        controlOnOFF(false);
+        //controlOnOFF(false);
+        //ui->pushButton_Sweep->setEnabled(false);
     }
 
 }
@@ -99,74 +107,80 @@ void MainWindow::LogMsg(QString str)
 
 void MainWindow::on_pushButton_Sweep_clicked()
 {
+    sweepOnOff = !sweepOnOff;
 
-    controlOnOFF(false);
-    ui->pushButton_ReadPower->setEnabled(false);
+    if( sweepOnOff ){
+        controlOnOFF(false);
+        ui->pushButton_ReadPower->setEnabled(false);
 
-    ui->pushButton_Sweep->setStyleSheet("background-color: rgb(0,255,0)");
-    write2Device("*BUZZER OFF");
+        ui->pushButton_Sweep->setStyleSheet("background-color: rgb(0,255,0)");
+        write2Device("*BUZZER OFF");
 
-    write2Device("OUTP:STAT ON"); // switch on RF
-    //Looping
-    QString stepstr = ui->lineEdit_StepSize->text();
-    stepstr.chop(3);
-    double step = stepstr.toDouble();
-    double start = ui->lineEdit_Start->text().toDouble();
-    //double stop = ui->lineEdit_Stop->text().toDouble();
-    int points = ui->lineEdit_Points->text().toInt();
-    double waitTime = ui->lineEdit_Dwell->text().toDouble(); // in ms;
+        write2Device("OUTP:STAT ON"); // switch on RF
 
-    double yMin, xMin;
+        //Looping===================
 
-    x.clear();
-    y.clear();
-    qDebug() << points << ", " << step;
-    for( int i = 1 ; i <= points; i ++){
-        double freq = start + (i-1) * step;
-        qDebug() << i << "," <<  freq;
-        QString input;
-        input.sprintf("FREQ:CW %fMHz", freq);
-        write2Device(input);
+        QString stepstr = ui->lineEdit_StepSize->text();
+        stepstr.chop(3);
+        double step = stepstr.toDouble();
+        double start = ui->lineEdit_Start->text().toDouble();
+        //double stop = ui->lineEdit_Stop->text().toDouble();
+        int points = ui->lineEdit_Points->text().toInt();
+        double waitTime = ui->lineEdit_Dwell->text().toDouble(); // in ms;
 
-        x.push_back(freq);
+        double yMin, xMin;
 
-        //wait for waitTime
-        QEventLoop eventLoop;
-        QTimer::singleShot(waitTime, &eventLoop, SLOT(quit()));
-        eventLoop.exec();
+        x.clear();
+        y.clear();
+        for( int i = 1 ; i <= points; i ++){
+            if(!sweepOnOff) continue;
 
-        //get powerMeter reading;
-        sprintf(powerMeter->cmd, ":READ?\n");
-        double reading = powerMeter->Ask(powerMeter->cmd).toDouble();
-        LogMsg("reading : " + QString::number(reading));
-        y.push_back(reading);
-        if( i == 1) {
-            yMin = reading;
-            xMin = freq;
-        }else{
-            if( yMin > reading ){
+            double freq = start + (i-1) * step;
+            qDebug() << i << "," <<  freq;
+            QString input;
+            input.sprintf("FREQ:CW %fMHz", freq);
+            write2Device(input);
+
+            x.push_back(freq);
+
+            //wait for waitTime
+            QEventLoop eventLoop;
+            QTimer::singleShot(waitTime, &eventLoop, SLOT(quit()));
+            eventLoop.exec();
+
+            //get powerMeter reading;
+            sprintf(powerMeter->cmd, ":READ?\n");
+            double reading = powerMeter->Ask(powerMeter->cmd).toDouble();
+            LogMsg("reading : " + QString::number(reading));
+            y.push_back(reading);
+            if( i == 1) {
                 yMin = reading;
                 xMin = freq;
+            }else{
+                if( yMin > reading ){
+                    yMin = reading;
+                    xMin = freq;
+                }
             }
+            // plotgraph
+            plot->graph(0)->clearData();
+            plot->graph(0)->setData(x,y);
+            plot->yAxis->rescale();
+            plot->replot();
+
         }
-        // plotgraph
-        plot->graph(0)->clearData();
-        plot->graph(0)->setData(x,y);
-        plot->yAxis->rescale();
-        plot->replot();
 
+        write2Device("OUTP:STAT OFF"); // switch off RF
+        write2Device("*BUZZER ON");
+        ui->pushButton_Sweep->setStyleSheet("");
+
+        controlOnOFF(true);
+        ui->pushButton_ReadPower->setEnabled(true);
+
+        QString msg;
+        msg.sprintf("Min(x,y) = (%f, %f)", xMin, yMin);
+        LogMsg(msg);
     }
-
-    write2Device("OUTP:STAT OFF"); // switch off RF
-    write2Device("*BUZZER ON");
-    ui->pushButton_Sweep->setStyleSheet("");
-
-    controlOnOFF(true);
-    ui->pushButton_ReadPower->setEnabled(true);
-
-    QString msg;
-    msg.sprintf("Min(x,y) = (%f, %f)", xMin, yMin);
-    LogMsg(msg);
 
 }
 
@@ -219,7 +233,15 @@ void MainWindow::controlOnOFF(bool IO)
     ui->lineEdit_Points->setEnabled(IO);
     ui->lineEdit_Start->setEnabled(IO);
     ui->lineEdit_Stop->setEnabled(IO);
-    ui->pushButton_Sweep->setEnabled(IO);
+
+    ui->lineEdit_Multiplier->setEnabled(IO);
+    //ui->lineEdit_EffStart->setEnabled(IO);
+    //ui->lineEdit_EffStop->setEnabled(IO);
+
+    ui->lineEdit_Freq->setEnabled(IO);
+    //ui->lineEdit_EffFreq->setEnabled(IO);
+    //ui->pushButton_RFOnOff->setEnabled(IO);
+    //ui->pushButton_Sweep->setEnabled(IO);
 }
 
 void MainWindow::on_pushButton_SendCommand_clicked()
@@ -257,6 +279,10 @@ void MainWindow::on_lineEdit_Start_textChanged(const QString &arg1)
     double step = range/(points-1);
     ui->lineEdit_StepSize->setText(QString::number(step) + " MHz");
 
+    int multi = ui->lineEdit_Multiplier->text().toInt();
+    double effStart = multi * arg1.toDouble();
+    ui->lineEdit_EffStart->setText(QString::number(effStart));
+
     plot->xAxis->setRange(arg1.toDouble() - range*0.1, stop +  range*0.1);
     plot->replot();
 }
@@ -268,6 +294,10 @@ void MainWindow::on_lineEdit_Stop_textChanged(const QString &arg1)
     double range = (arg1.toDouble() - start);
     double step = range/(points-1);
     ui->lineEdit_StepSize->setText(QString::number(step) + " MHz");
+
+    int multi = ui->lineEdit_Multiplier->text().toInt();
+    double effStop = multi * arg1.toDouble();
+    ui->lineEdit_EffStop->setText(QString::number(effStop));
 
     plot->xAxis->setRange(start - range*0.1, arg1.toDouble()+  range*0.1);
     plot->replot();
@@ -375,5 +405,38 @@ void MainWindow::on_actionSave_plot_triggered()
 
 void MainWindow::on_pushButton_RFOnOff_clicked()
 {
+    rfOnOff = !rfOnOff;
 
+    if(rfOnOff){
+        ui->pushButton_RFOnOff->setStyleSheet("background-color: rgb(0,255,0)");
+        double freq = ui->lineEdit_Freq->text().toDouble();
+        QString inputStr;
+        inputStr.sprintf("FRQ:CW %fMHz", freq);
+        write2Device(inputStr);
+        write2Device("OUTP:STAT ON");
+        controlOnOFF(false);
+    }else{
+        ui->pushButton_RFOnOff->setStyleSheet("");
+        write2Device("OUTP:STAT OFF");
+        controlOnOFF(true);
+    }
+
+}
+
+void MainWindow::on_lineEdit_Multiplier_textChanged(const QString &arg1)
+{
+    double effStart = arg1.toInt() * ui->lineEdit_Start->text().toDouble();
+    double effStop = arg1.toInt() * ui->lineEdit_Stop->text().toDouble();
+    double effFreq = arg1.toInt() * ui->lineEdit_Freq->text().toDouble();
+
+    ui->lineEdit_EffStart->setText(QString::number(effStart));
+    ui->lineEdit_EffStop->setText(QString::number(effStop));
+    ui->lineEdit_EffFreq->setText(QString::number(effFreq));
+}
+
+void MainWindow::on_lineEdit_Freq_textChanged(const QString &arg1)
+{
+    int multi = ui->lineEdit_Multiplier->text().toInt();
+    double effFreq = multi * arg1.toDouble();
+    ui->lineEdit_EffFreq->setText(QString::number(effFreq));
 }

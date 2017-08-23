@@ -50,6 +50,10 @@ private slots:
 
     void on_pushButton_RFOnOff_clicked();
 
+    void on_lineEdit_Freq_textChanged(const QString &arg1);
+
+    void on_lineEdit_Multiplier_textChanged(const QString &arg1);
+    
 private:
     Ui::MainWindow *ui;
 
@@ -61,7 +65,8 @@ private:
     QString generatorPortName;
     QString generatorLastRepond;
 
-    bool RFOnOff;
+    bool rfOnOff;
+    bool sweepOnOff;
     int msgCount;
 
     QVector<double> x, y;
