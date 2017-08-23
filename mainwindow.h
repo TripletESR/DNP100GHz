@@ -54,6 +54,10 @@ private slots:
 
     void on_lineEdit_Multiplier_textChanged(const QString &arg1);
     
+    void on_comboBox_yAxis_currentIndexChanged(int index);
+
+    void on_spinBox_Average_valueChanged(int arg1);
+
 private:
     Ui::MainWindow *ui;
 
@@ -69,7 +73,7 @@ private:
     bool sweepOnOff;
     int msgCount;
 
-    QVector<double> x, y;
+    QVector<double> x, y, dB;
 };
 
 #endif // MAINWINDOW_H

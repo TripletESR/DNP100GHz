@@ -14,7 +14,7 @@
    <string>DNP 100GHz</string>
   </property>
   <widget class="QWidget" name="centralWidget">
-   <layout class="QGridLayout" name="gridLayout_3" rowstretch="2,2,1,2">
+   <layout class="QGridLayout" name="gridLayout_3" rowstretch="2,3,1,2">
     <item row="2" column="0">
      <widget class="QComboBox" name="comboBox_yAxis"/>
     </item>
@@ -29,7 +29,14 @@
      </widget>
     </item>
     <item row="2" column="2">
-     <widget class="QSpinBox" name="spinBox_Average"/>
+     <widget class="QSpinBox" name="spinBox_Average">
+      <property name="minimum">
+       <number>1</number>
+      </property>
+      <property name="singleStep">
+       <number>2</number>
+      </property>
+     </widget>
     </item>
     <item row="1" column="0" colspan="3">
      <widget class="QCustomPlot" name="powerPlot" native="true"/>

@@ -18,7 +18,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
     plot = ui->powerPlot;
     plot->xAxis->setLabel("freq. [MHz]");
-    plot->yAxis->setLabel("power. [a.u.]");
+    plot->yAxis->setLabel("power. [V]");
     plot->xAxis->setRange(900, 2100);
     plot->addGraph();
     plot->graph(0)->setPen(QPen(Qt::blue));
@@ -35,6 +35,10 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->lineEdit_EffStop->setText("5000");
     ui->lineEdit_Freq->setText("4500");
     ui->lineEdit_EffFreq->setText("4500");
+
+    ui->comboBox_yAxis->addItem("Linear y");
+    ui->comboBox_yAxis->addItem("Log y");
+    ui->comboBox_yAxis->addItem("dB y");
 
     //============== opne power meter
     powerMeter = new QSCPI("USB0::0x2A8D::0x1601::MY53102568::0::INSTR"); // DMM
@@ -69,15 +73,15 @@ MainWindow::MainWindow(QWidget *parent) :
     if(generator->open(QIODevice::ReadWrite)){
         LogMsg("The generator is connected in " + generatorPortName + ".");
         ui->statusBar->setToolTip( tr("The generator is connected."));
-        //controlOnOFF(true);
-        //ui->pushButton_Sweep->setEnabled(true);
+        controlOnOFF(true);
+        ui->pushButton_Sweep->setEnabled(true);
         write2Device("OUTP:STAT OFF");
     }else{
         //QMessageBox::critical(this, tr("Error"), generator->errorString());
         LogMsg("The generator cannot be found on any COM port.");
         ui->statusBar->setToolTip(tr("Open error"));
-        //controlOnOFF(false);
-        //ui->pushButton_Sweep->setEnabled(false);
+        controlOnOFF(false);
+        ui->pushButton_Sweep->setEnabled(false);
     }
 
 }
@@ -130,6 +134,7 @@ void MainWindow::on_pushButton_Sweep_clicked()
 
         double yMin, xMin;
 
+        LogMsg("Clearing data.");
         x.clear();
         y.clear();
         for( int i = 1 ; i <= points; i ++){
@@ -152,16 +157,18 @@ void MainWindow::on_pushButton_Sweep_clicked()
             sprintf(powerMeter->cmd, ":READ?\n");
             double reading = powerMeter->Ask(powerMeter->cmd).toDouble();
             LogMsg("reading : " + QString::number(reading));
+            reading = sin(i-1);
             y.push_back(reading);
             if( i == 1) {
                 yMin = reading;
                 xMin = freq;
-            }else{
-                if( yMin > reading ){
-                    yMin = reading;
-                    xMin = freq;
-                }
             }
+
+            if( yMin > reading ){
+                yMin = reading;
+                xMin = freq;
+            }
+
             // plotgraph
             plot->graph(0)->clearData();
             plot->graph(0)->setData(x,y);
@@ -180,6 +187,8 @@ void MainWindow::on_pushButton_Sweep_clicked()
         QString msg;
         msg.sprintf("Min(x,y) = (%f, %f)", xMin, yMin);
         LogMsg(msg);
+
+        sweepOnOff = false;
     }
 
 }
@@ -439,4 +448,79 @@ void MainWindow::on_lineEdit_Freq_textChanged(const QString &arg1)
     int multi = ui->lineEdit_Multiplier->text().toInt();
     double effFreq = multi * arg1.toDouble();
     ui->lineEdit_EffFreq->setText(QString::number(effFreq));
+}
+
+void MainWindow::on_comboBox_yAxis_currentIndexChanged(int index)
+{
+    qDebug() << "index : " << index ;
+    plot->graph(0)->clearData();
+    plot->graph(0)->addData(x, y);
+    plot->yAxis->setLabel("power [V]");
+    // find max y
+    double yMax = 0, yMin;
+    for(int i = 0; i < y.size(); i++){
+        if(yMax < y[i]) yMax = y[i];
+        if(yMin > y[i]) yMin = y[i];
+    }
+    qDebug() << yMin << "," << yMax;
+
+    if(index == 0){
+        plot->yAxis->setScaleType(QCPAxis::stLinear);
+        LogMsg("Change to linear-y");
+    }else if( index == 1){
+        plot->yAxis->setScaleType(QCPAxis::stLogarithmic);
+        plot->yAxis->setRange(yMin, yMax);
+        LogMsg("Change to log-y");
+    }else{
+        // cal dB
+        dB.clear();
+        for(int i = 0; i < y.size(); i++){
+            dB.push_back( 10 * qLn(y[i]/yMax)/qLn(10));
+        }
+        plot->yAxis->setScaleType(QCPAxis::stLinear);
+        plot->graph(0)->clearData();
+        plot->graph(0)->addData(x, dB);
+        plot->yAxis->setLabel("power [dB]");
+        LogMsg("Change to dB-y");
+    }
+
+    plot->yAxis->rescale();
+    plot->replot();
+}
+
+void MainWindow::on_spinBox_Average_valueChanged(int arg1)
+{
+    int index = ui->comboBox_yAxis->currentIndex();
+
+    if( arg1 == 1){
+        on_comboBox_yAxis_currentIndexChanged(index);
+        return;
+    }
+
+    QVector<double> ax, ay, adB;
+    int iHalf = (arg1 -1)/2;
+    int size = x.size();
+    int iStop = size - 1 - iHalf;
+    for( int i = iHalf; i <= iStop; i++){
+        ax.push_back(x[i]);
+        double yAvg = 0;
+        for(int j = -iHalf; j < iHalf; j++){
+            yAvg += y[i+j]/arg1;
+        }
+        ay.push_back(yAvg);
+    }
+    plot->graph(0)->clearData();
+    plot->graph(0)->addData(ax, ay);
+
+    if( index == 2){
+        double yMax = *std::max_element(y.begin(), y.end());
+        for( int i = 0; i <= ay.size(); i++){
+            adB.push_back( 10 * qLn(ay[i]/yMax)/qLn(10));
+        }
+        plot->graph(0)->clearData();
+        plot->graph(0)->addData(ax, adB);
+    }
+    plot->yAxis->rescale();
+    plot->replot();
+
 }
