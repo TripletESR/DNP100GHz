@@ -116,6 +116,9 @@ void MainWindow::on_pushButton_Sweep_clicked()
     if( sweepOnOff ){
         controlOnOFF(false);
         ui->pushButton_ReadPower->setEnabled(false);
+        ui->pushButton_RFOnOff->setEnabled(false);
+        ui->comboBox_yAxis->setEnabled(false);
+        ui->spinBox_Average->setEnabled(false);
 
         ui->pushButton_Sweep->setStyleSheet("background-color: rgb(0,255,0)");
         write2Device("*BUZZER OFF");
@@ -134,6 +137,8 @@ void MainWindow::on_pushButton_Sweep_clicked()
 
         double yMin, xMin;
 
+        int multi = ui->lineEdit_Multiplier->text().toInt();
+
         LogMsg("Clearing data.");
         x.clear();
         y.clear();
@@ -146,7 +151,7 @@ void MainWindow::on_pushButton_Sweep_clicked()
             input.sprintf("FREQ:CW %fMHz", freq);
             write2Device(input);
 
-            x.push_back(freq);
+            x.push_back(freq * multi);
 
             //wait for waitTime
             QEventLoop eventLoop;
@@ -157,7 +162,7 @@ void MainWindow::on_pushButton_Sweep_clicked()
             sprintf(powerMeter->cmd, ":READ?\n");
             double reading = powerMeter->Ask(powerMeter->cmd).toDouble();
             LogMsg("reading : " + QString::number(reading));
-            reading = sin(i-1);
+            //reading = sin(i-1);
             y.push_back(reading);
             if( i == 1) {
                 yMin = reading;
@@ -183,6 +188,10 @@ void MainWindow::on_pushButton_Sweep_clicked()
 
         controlOnOFF(true);
         ui->pushButton_ReadPower->setEnabled(true);
+        ui->pushButton_RFOnOff->setEnabled(true);
+        ui->comboBox_yAxis->setEnabled(true);
+        ui->spinBox_Average->setEnabled(true);
+        ui->spinBox_Average->setValue(1);
 
         QString msg;
         msg.sprintf("Min(x,y) = (%f, %f)", xMin, yMin);
@@ -282,17 +291,18 @@ void MainWindow::on_lineEdit_Dwell_textChanged(const QString &arg1)
 
 void MainWindow::on_lineEdit_Start_textChanged(const QString &arg1)
 {
+    int multi = ui->lineEdit_Multiplier->text().toInt();
+    double effStart = multi * arg1.toDouble();
+    ui->lineEdit_EffStart->setText(QString::number(effStart));
+
     double stop = ui->lineEdit_Stop->text().toDouble();
     int points = ui->lineEdit_Points->text().toInt();
     double range = (stop - arg1.toDouble());
     double step = range/(points-1);
     ui->lineEdit_StepSize->setText(QString::number(step) + " MHz");
 
-    int multi = ui->lineEdit_Multiplier->text().toInt();
-    double effStart = multi * arg1.toDouble();
-    ui->lineEdit_EffStart->setText(QString::number(effStart));
 
-    plot->xAxis->setRange(arg1.toDouble() - range*0.1, stop +  range*0.1);
+    plot->xAxis->setRange((arg1.toDouble() - range*0.1)*multi, (stop +  range*0.1)*multi);
     plot->replot();
 }
 
@@ -308,7 +318,7 @@ void MainWindow::on_lineEdit_Stop_textChanged(const QString &arg1)
     double effStop = multi * arg1.toDouble();
     ui->lineEdit_EffStop->setText(QString::number(effStop));
 
-    plot->xAxis->setRange(start - range*0.1, arg1.toDouble()+  range*0.1);
+    plot->xAxis->setRange((start - range*0.1)*multi, (arg1.toDouble()+  range*0.1)*multi);
     plot->replot();
 }
 
@@ -420,7 +430,7 @@ void MainWindow::on_pushButton_RFOnOff_clicked()
         ui->pushButton_RFOnOff->setStyleSheet("background-color: rgb(0,255,0)");
         double freq = ui->lineEdit_Freq->text().toDouble();
         QString inputStr;
-        inputStr.sprintf("FRQ:CW %fMHz", freq);
+        inputStr.sprintf("FREQ:CW %fMHz", freq);
         write2Device(inputStr);
         write2Device("OUTP:STAT ON");
         controlOnOFF(false);
@@ -440,7 +450,16 @@ void MainWindow::on_lineEdit_Multiplier_textChanged(const QString &arg1)
 
     ui->lineEdit_EffStart->setText(QString::number(effStart));
     ui->lineEdit_EffStop->setText(QString::number(effStop));
-    ui->lineEdit_EffFreq->setText(QString::number(effFreq));
+    ui->lineEdit_EffFreq->setText(QString::number(effFreq));  
+
+    double start = ui->lineEdit_Start->text().toDouble();
+    double stop = ui->lineEdit_Stop->text().toDouble();
+    double range = stop - start;
+
+    int multi = arg1.toInt();
+
+    plot->xAxis->setRange((start - range*0.1)*multi, (stop +  range*0.1)*multi);
+    plot->replot();
 }
 
 void MainWindow::on_lineEdit_Freq_textChanged(const QString &arg1)
