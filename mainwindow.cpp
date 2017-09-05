@@ -89,7 +89,7 @@ MainWindow::MainWindow(QWidget *parent) :
     switchMatrix = new QAxObject("MCL_RF_Switch_Controller.USB_RF_Switch");
 
     if( switchMatrix->dynamicCall("Connect()").toInt()){
-        switchConnected = true;
+
         QList<QVariant> list;
         list << "dummy";
         switchMatrix->dynamicCall("Read_ModelName(QString&)", list);
@@ -97,8 +97,21 @@ MainWindow::MainWindow(QWidget *parent) :
         switchMatrix->dynamicCall("Read_SN(QString&)", list);
         QString serialNumber = list[0].toString();
         LogMsg("Switch connected: " + modelName + ", S/N: " + serialNumber);
+
+        switchMatrix->dynamicCall("GetSwitchesStatus(int&)", list);
+        int port = list[0].toInt();
+
+        LogMsg("Switch A port = " + QString::number((port & 1)+1));
+        LogMsg("Switch B port = " + QString::number((port>>1 )+1));
+
+        ui->horizontalSlider_A->setValue(port & 1);
+        ui->horizontalSlider_B->setValue(port & 2);
+
+        switchConnected = true;
     }else{
         LogMsg("Connot find switch matrix.");
+        ui->horizontalSlider_A->setEnabled(false);
+        ui->horizontalSlider_B->setEnabled(false);
     }
 
 }
@@ -576,12 +589,14 @@ void MainWindow::SetSwitchMatrixPort(QString slot, int port)
 
 void MainWindow::on_horizontalSlider_A_valueChanged(int value)
 {
+    if(!switchConnected) return;
     LogMsg("Set SwitchName A to port " + QString::number(value+1));
     SetSwitchMatrixPort("A", value);
 }
 
 void MainWindow::on_horizontalSlider_B_valueChanged(int value)
 {
+    if(!switchConnected) return;
     LogMsg("Set SwitchName B to port " + QString::number(value+1));
     SetSwitchMatrixPort("B", value);
 }

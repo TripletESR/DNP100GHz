@@ -27,42 +27,30 @@ private slots:
     void write2Device(const QString &msg);
     void readFromDevice();
 
+    void SetSwitchMatrixPort(QString slot, int port);
     void controlOnOFF(bool IO);
 
     void on_pushButton_SendCommand_clicked();
-
     void on_lineEdit_Points_textChanged(const QString &arg1);
-
     void on_lineEdit_Dwell_textChanged(const QString &arg1);
-
     void on_lineEdit_Start_textChanged(const QString &arg1);
-
     void on_lineEdit_Stop_textChanged(const QString &arg1);
-
     void on_doubleSpinBox_Power_valueChanged(double arg1);
-
     void on_doubleSpinBox_valueChanged(double arg1);
 
     void on_actionSave_Data_triggered();
-
-    void on_pushButton_ReadPower_clicked();
-
     void on_actionSave_plot_triggered();
 
+    void on_pushButton_ReadPower_clicked();
     void on_pushButton_RFOnOff_clicked();
 
     void on_lineEdit_Freq_textChanged(const QString &arg1);
-
     void on_lineEdit_Multiplier_textChanged(const QString &arg1);
     
     void on_comboBox_yAxis_currentIndexChanged(int index);
-
     void on_spinBox_Average_valueChanged(int arg1);
 
-    void SetSwitchMatrixPort(QString slot, int port);
-
     void on_horizontalSlider_A_valueChanged(int value);
-
     void on_horizontalSlider_B_valueChanged(int value);
 
 private:
