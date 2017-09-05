@@ -3,6 +3,7 @@
 
 #include <QMainWindow>
 #include <QtSerialPort>
+#include <QAxObject>
 #include "qcustomplot.h"
 #include "qscpi.h"
 
@@ -58,6 +59,12 @@ private slots:
 
     void on_spinBox_Average_valueChanged(int arg1);
 
+    void SetSwitchMatrixPort(QString slot, int port);
+
+    void on_horizontalSlider_A_valueChanged(int value);
+
+    void on_horizontalSlider_B_valueChanged(int value);
+
 private:
     Ui::MainWindow *ui;
 
@@ -65,6 +72,7 @@ private:
 
     QSCPI * powerMeter;
     QSerialPort * generator;
+    QAxObject * switchMatrix;
 
     QString generatorPortName;
     QString generatorLastRepond;
@@ -72,6 +80,7 @@ private:
     bool rfOnOff;
     bool sweepOnOff;
     int msgCount;
+    bool switchConnected;
 
     QVector<double> x, y, dB;
 };
