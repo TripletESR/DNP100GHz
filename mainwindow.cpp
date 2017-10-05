@@ -2,6 +2,7 @@
 #include "ui_mainwindow.h"
 
 const QString DESKTOP_PATH = QStandardPaths::locate(QStandardPaths::DesktopLocation, QString(), QStandardPaths::LocateDirectory);
+const QString DATA_PATH = "Z:/triplet/";
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -382,8 +383,13 @@ void MainWindow::on_actionSave_Data_triggered()
     }
 
     QDateTime date = QDateTime::currentDateTime();
-    QString fileName = date.toString("yyyyMMdd_HHmmss") + "DNP100GHz.dat";
-    QString filePath = DESKTOP_PATH + "/" + fileName;
+    QString fileName = date.toString("yyyyMMdd_HHmmss") + "_DNP100GHz.dat";
+    QString filePath = DATA_PATH + fileName;
+
+    QFileDialog fileDialog(this);
+    fileDialog.setDirectory("Z:/triplet/");
+    filePath = fileDialog.getSaveFileName(this, "Save to", filePath);
+
     QFile outfile(filePath);
 
     outfile.open(QIODevice::WriteOnly);
