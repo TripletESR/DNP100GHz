@@ -42,15 +42,19 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->comboBox_yAxis->addItem("dB y");
 
     //============== opne power meter
-    powerMeter = new QSCPI("USB0::0x2A8D::0x1601::MY53102568::0::INSTR"); // DMM
+    powerMeter = new QSCPI((ViRsrc) "GPIB0::4::INSTR"); // the DPM
+    //powerMeter = new QSCPI((ViRsrc) "USB0::0x2A8D::0x1601::MY53102568::0::INSTR"); // DMM in ocilloscope
     connect(powerMeter, SIGNAL(SendMsg(QString)), this, SLOT(LogMsg(QString)));
+
     if( powerMeter->status == VI_SUCCESS){
-        LogMsg("power meter online.");
+        LogMsg("Power meter online.");
         ui->pushButton_ReadPower->setEnabled(true);
-        sprintf(powerMeter->cmd, ":configure:voltage:DC\n");
-        powerMeter->SendCmd(powerMeter->cmd);
+        //sprintf(powerMeter->cmd, ":configure:voltage:DC\n");
+        //powerMeter->SendCmd(powerMeter->cmd);
     }else{
-        LogMsg("Power meter cannot be found.");
+        LogMsg("Power meter cannot be found or open.");
+        powerMeter->ErrorMassage();
+        LogMsg("VISA Error : " + powerMeter->scpi_Msg);
         ui->pushButton_ReadPower->setEnabled(false);
     }
 
@@ -296,6 +300,7 @@ void MainWindow::controlOnOFF(bool IO)
     //ui->lineEdit_EffFreq->setEnabled(IO);
     //ui->pushButton_RFOnOff->setEnabled(IO);
     //ui->pushButton_Sweep->setEnabled(IO);
+
 }
 
 void MainWindow::on_pushButton_SendCommand_clicked()
@@ -417,7 +422,8 @@ void MainWindow::on_actionSave_Data_triggered()
 
 void MainWindow::on_pushButton_ReadPower_clicked()
 {
-    sprintf(powerMeter->cmd, ":READ?\n");
+    sprintf(powerMeter->cmd, "READ?\n"); // for DPM
+    //sprintf(powerMeter->cmd, ":READ?\n"); // for ocilloscope
     powerMeter->Ask(powerMeter->cmd).toDouble();
     //LogMsg("reading : " + QString::number(reading));
 }

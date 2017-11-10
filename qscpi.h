@@ -6,7 +6,8 @@
 #include <cmath>
 #include <windows.h>
 //#include "C:\Program Files (x86)\IVI Foundation\VISA\WinNT\Include\visa.h"
-#include "C:\Program Files\IVI Foundation\VISA\Win64\Include\visa.h"
+#include "C:\Program Files (x86)\IVI Foundation\VISA\WinNT\agvisa\include\visa.h"
+//#include "C:\Program Files\IVI Foundation\VISA\Win64\Include\visa.h"
 #include <QDebug>
 
 class QSCPI : public QObject
@@ -20,6 +21,8 @@ public:
     //explicit QSCPI(ViRsrc name,QObject *parent = 0);
     explicit QSCPI(ViRsrc name);
     ~QSCPI();
+
+    void ErrorMassage();
 
 signals:
 

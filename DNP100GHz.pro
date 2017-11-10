@@ -12,7 +12,10 @@ TARGET = DNP100GHz
 TEMPLATE = app
 
 #have to use winNT because the compiler WinGW is 32
-win32: LIBS += "C:/Program Files (x86)/IVI Foundation/VISA/WinNT/lib/msc/visa32.lib"
+#win32: LIBS += "C:/Program Files (x86)/IVI Foundation/VISA/WinNT/lib/msc/visa32.lib"
+win32: LIBS += "C:/Program Files (x86)/IVI Foundation/VISA/WinNT/agvisa/lib/msc/visa32.lib"
+
+INCLUDEPATH += "C:/Program Files (x86)/IVI Foundation/VISA/WinNT/agvisa/agbin"
 
 win32:RC_ICONS += icon.ico
 
