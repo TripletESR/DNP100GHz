@@ -19,7 +19,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
     plot = ui->powerPlot;
     plot->xAxis->setLabel("freq. [MHz]");
-    plot->yAxis->setLabel("power. [V]");
+    plot->yAxis->setLabel("power. [mW]");
     plot->xAxis->setRange(900, 2100);
     plot->addGraph();
     plot->graph(0)->setPen(QPen(Qt::blue));
@@ -28,7 +28,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->lineEdit_Start->setText("4000");
     ui->lineEdit_Stop->setText("5000");
     ui->lineEdit_Points->setText("101");
-    ui->lineEdit_Dwell->setText("200");
+    ui->lineEdit_Dwell->setText("300");
     ui->lineEdit_StepSize->setText("10 MHz");
     ui->lineEdit_RunTime->setText("~20.100 sec");
     ui->lineEdit_Multiplier->setText("1");
@@ -193,25 +193,34 @@ void MainWindow::on_pushButton_Sweep_clicked()
 
             x.push_back(freq * multi);
 
-            //wait for waitTime
+            //get powerMeter reading; change the power meter freq., then read
+            QString freqCmd = "sens:freq ";
+            QString freqStr;
+            freqStr.sprintf("%6.2f",freq/1000.*24); // in GHz, also with 4 and 6 mulipiler.
+            freqStr.remove(" ");
+            freqCmd = freqCmd + freqStr;
+            //qDebug() << "-----------" << freqCmd;
+            sprintf(powerMeter->cmd, "%s\n", freqCmd.toStdString().c_str());
+            powerMeter->SendCmd(powerMeter->cmd);
+
+            //wait for waittime, for the powereter to measure the freq.
             QEventLoop eventLoop;
             QTimer::singleShot(waitTime, &eventLoop, SLOT(quit()));
             eventLoop.exec();
 
-            //get powerMeter reading; change the power meter freq., then read
-            sprintf(powerMeter->cmd, "sens:freq %5.1f", freq/1000. * 24. ); // in GHz
-            qDebug() << "power meter cmd : " << powerMeter->cmd;
-            powerMeter->SendCmd(powerMeter->cmd);
-            QString DPMfreq = powerMeter->Ask("sens:freq?\n");
-            qDebug() << "power meter freq : " << DPMfreq;
-            LogMsg("power meter freq : " + DPMfreq);
-            sprintf(powerMeter->cmd, "read?\n");
+            sprintf(powerMeter->cmd, "READ?\n");
             QString readingStr = powerMeter->Ask(powerMeter->cmd);
-            LogMsg( "power meter power : " + readingStr);
+            QString unit = readingStr.right(2);
+            //qDebug() << "................." << readingStr << ", unit : " << unit;
             readingStr.chop(2);
-            qDebug() << readingStr;
-            LogMsg( "power meter power 2 : " + readingStr);
             double reading = readingStr.toDouble();
+            //change the unit to mW for other unit.
+            if( unit == "UW" ) reading = reading / 1000.;
+
+            //Warning when power > 20 mW;
+            if( reading >= 20. ) {
+                LogMsg("######################### DANGER! power >= 20 mW !!!");
+            }
             LogMsg("reading : " + QString::number(reading));
             //reading = sin(i-1);
             y.push_back(reading);
@@ -335,8 +344,8 @@ void MainWindow::on_lineEdit_Dwell_textChanged(const QString &arg1)
     int points = ui->lineEdit_Points->text().toInt();
     double runTime = points * arg1.toDouble() / 1000.;
     ui->lineEdit_RunTime->setText("~" + QString::number(runTime) + " sec");
-    if( arg1.toDouble() < 100){
-        LogMsg("The dwell time may be too small for the power meter to respond.");
+    if( arg1.toDouble() < 300){
+        LogMsg("The dwell time = "+ arg1 +" may be too small for the power meter to respond.");
         LogMsg("Please consider to increase the dwell time.");
     }
 }
@@ -433,10 +442,13 @@ void MainWindow::on_actionSave_Data_triggered()
 
 void MainWindow::on_pushButton_ReadPower_clicked()
 {
+    sprintf(powerMeter->cmd, "sens:freq?\n");
+    powerMeter->Ask(powerMeter->cmd);
+
     sprintf(powerMeter->cmd, "READ?\n"); // for DPM
     //sprintf(powerMeter->cmd, ":READ?\n"); // for ocilloscope
-    double power = powerMeter->Ask(powerMeter->cmd).toDouble();
-    LogMsg("Unadjusted power reading : " + QString::number(power));
+    powerMeter->Ask(powerMeter->cmd);
+    //LogMsg("Unadjusted power reading : " + QString::number(power));
 }
 
 void MainWindow::on_actionSave_plot_triggered()
@@ -492,6 +504,17 @@ void MainWindow::on_pushButton_RFOnOff_clicked()
         write2Device(inputStr);
         write2Device("OUTP:STAT ON");
         controlOnOFF(false);
+
+        //Set power meter freq;
+        QString freqCmd = "sens:freq ";
+        QString freqStr;
+        freqStr.sprintf("%6.2f",freq/1000.*24); // in GHz, also with 4 and 6 mulipiler.
+        freqStr.remove(" ");
+        freqCmd = freqCmd + freqStr;
+        //qDebug() << "-----------" << freqCmd;
+        sprintf(powerMeter->cmd, "%s\n", freqCmd.toStdString().c_str());
+        powerMeter->SendCmd(powerMeter->cmd);
+
     }else{
         ui->pushButton_RFOnOff->setStyleSheet("");
         write2Device("OUTP:STAT OFF");
@@ -532,7 +555,7 @@ void MainWindow::on_comboBox_yAxis_currentIndexChanged(int index)
     qDebug() << "index : " << index ;
     plot->graph(0)->clearData();
     plot->graph(0)->addData(x, y);
-    plot->yAxis->setLabel("power [V]");
+    plot->yAxis->setLabel("power [mW]");
     // find max y
     double yMax = 0, yMin;
     for(int i = 0; i < y.size(); i++){
@@ -557,7 +580,7 @@ void MainWindow::on_comboBox_yAxis_currentIndexChanged(int index)
         plot->yAxis->setScaleType(QCPAxis::stLinear);
         plot->graph(0)->clearData();
         plot->graph(0)->addData(x, dB);
-        plot->yAxis->setLabel("power [dB]");
+        plot->yAxis->setLabel("power [dBm]");
         LogMsg("Change to dB-y");
     }
 
