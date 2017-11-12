@@ -198,8 +198,11 @@ void MainWindow::on_pushButton_Sweep_clicked()
             QTimer::singleShot(waitTime, &eventLoop, SLOT(quit()));
             eventLoop.exec();
 
-            //get powerMeter reading;
-            sprintf(powerMeter->cmd, ":READ?\n");
+            //get powerMeter reading; change the power meter freq., then read
+            sprintf(powerMeter->cmd, "sens:freq %6.2f", freq);
+            qDebug() << "power meter cmd : " << powerMeter->cmd;
+            powerMeter->SendCmd(powerMeter->cmd);
+            sprintf(powerMeter->cmd, "READ?\n");
             double reading = powerMeter->Ask(powerMeter->cmd).toDouble();
             LogMsg("reading : " + QString::number(reading));
             //reading = sin(i-1);
