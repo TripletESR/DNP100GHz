@@ -199,11 +199,19 @@ void MainWindow::on_pushButton_Sweep_clicked()
             eventLoop.exec();
 
             //get powerMeter reading; change the power meter freq., then read
-            sprintf(powerMeter->cmd, "sens:freq %6.2f", freq);
+            sprintf(powerMeter->cmd, "sens:freq %5.1f", freq/1000. * 24. ); // in GHz
             qDebug() << "power meter cmd : " << powerMeter->cmd;
             powerMeter->SendCmd(powerMeter->cmd);
-            sprintf(powerMeter->cmd, "READ?\n");
-            double reading = powerMeter->Ask(powerMeter->cmd).toDouble();
+            QString DPMfreq = powerMeter->Ask("sens:freq?\n");
+            qDebug() << "power meter freq : " << DPMfreq;
+            LogMsg("power meter freq : " + DPMfreq);
+            sprintf(powerMeter->cmd, "read?\n");
+            QString readingStr = powerMeter->Ask(powerMeter->cmd);
+            LogMsg( "power meter power : " + readingStr);
+            readingStr.chop(2);
+            qDebug() << readingStr;
+            LogMsg( "power meter power 2 : " + readingStr);
+            double reading = readingStr.toDouble();
             LogMsg("reading : " + QString::number(reading));
             //reading = sin(i-1);
             y.push_back(reading);
@@ -427,8 +435,8 @@ void MainWindow::on_pushButton_ReadPower_clicked()
 {
     sprintf(powerMeter->cmd, "READ?\n"); // for DPM
     //sprintf(powerMeter->cmd, ":READ?\n"); // for ocilloscope
-    powerMeter->Ask(powerMeter->cmd).toDouble();
-    //LogMsg("reading : " + QString::number(reading));
+    double power = powerMeter->Ask(powerMeter->cmd).toDouble();
+    LogMsg("Unadjusted power reading : " + QString::number(power));
 }
 
 void MainWindow::on_actionSave_plot_triggered()
