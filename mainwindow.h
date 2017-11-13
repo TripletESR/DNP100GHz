@@ -20,7 +20,7 @@ public:
     ~MainWindow();
 
 private slots:
-    void LogMsg(QString str);
+    void LogMsg(QString str, bool warningFlag = false);
     void on_pushButton_Sweep_clicked();
 
     void findSeriesPortDevices();
@@ -31,8 +31,8 @@ private slots:
     void controlOnOFF(bool IO);
 
     void on_pushButton_SendCommand_clicked();
-    void on_lineEdit_Points_textChanged(const QString &arg1);
-    void on_lineEdit_Dwell_textChanged(const QString &arg1);
+    void on_spinBox_Points_valueChanged(int arg1);
+    void on_spinBox_Dwell_valueChanged(int arg1);
     void on_lineEdit_Start_textChanged(const QString &arg1);
     void on_lineEdit_Stop_textChanged(const QString &arg1);
     void on_doubleSpinBox_Power_valueChanged(double arg1);
@@ -52,6 +52,9 @@ private slots:
 
     void on_horizontalSlider_A_valueChanged(int value);
     void on_horizontalSlider_B_valueChanged(int value);
+
+    void checkPowerMeterFreq(double freq);
+
 
 private:
     Ui::MainWindow *ui;

@@ -40,10 +40,14 @@ void QSCPI::ErrorMassage()
     }
 
     qDebug() << "Status Massge : " << scpi_Msg;
+    emit SendMsg(scpi_Msg);
 }
 
 void QSCPI::SendCmd(char *cmd){
-    if( status != VI_SUCCESS ) return;
+    if( status != VI_SUCCESS ) {
+        ErrorMassage();
+        return;
+    }
     viPrintf(device, cmd);
     *std::remove(cmd, cmd+strlen(cmd), '\n') = '\0'; //remove "\n"
     //qDebug("%s", cmd);
@@ -53,7 +57,10 @@ void QSCPI::SendCmd(char *cmd){
 
 QString QSCPI::ReadRespond() //Change to AskQ
 {
-    if( status != VI_SUCCESS ) return "Err.";
+    if( status != VI_SUCCESS ) {
+        ErrorMassage();
+        return "VISA Err.";
+    }
     viScanf(device, "%t", (ViRsrc) this->buf);
     *std::remove(buf, buf+strlen(buf), '\n') = '\0';
     //qDebug("%s", buf);
@@ -63,7 +70,10 @@ QString QSCPI::ReadRespond() //Change to AskQ
 }
 
 QString QSCPI::Ask(char *cmd){
-    if( status != VI_SUCCESS) return "Err.";
+    if( status != VI_SUCCESS ) {
+        ErrorMassage();
+        return "VISA Err.";
+    }
     SendCmd(cmd);
     QString res = ReadRespond();
     //scpi_Msg.sprintf("%s" , res.toStdString().c_str());
@@ -72,7 +82,10 @@ QString QSCPI::Ask(char *cmd){
 }
 
 void QSCPI::Reset(){
-    if( status != VI_SUCCESS ) return;
+    if( status != VI_SUCCESS ) {
+        ErrorMassage();
+        return;
+    }
     viPrintf(device, (ViRsrc)"*RST\n");
     //qDebug() << "Reset : " << this->name;
     scpi_Msg.sprintf("Reset device : %s", this->name.toStdString().c_str());
@@ -80,7 +93,10 @@ void QSCPI::Reset(){
 }
 
 void QSCPI::Clear(){
-    if( status != VI_SUCCESS ) return;
+    if( status != VI_SUCCESS ) {
+        ErrorMassage();
+        return;
+    }
     viPrintf(device, (ViRsrc)"*CLS\n");
     //qDebug() << "Clear : " << this->name;
     scpi_Msg.sprintf("Clear device : %s", this->name.toStdString().c_str());
@@ -89,19 +105,28 @@ void QSCPI::Clear(){
 
 QString QSCPI::GetName()
 {
-    if( status != VI_SUCCESS ) return "";
+    if( status != VI_SUCCESS ) {
+        ErrorMassage();
+        return "VISA Error.";
+    }
     sprintf(cmd,"*IDN?\n");
     return Ask(cmd);
 }
 
 QString QSCPI::GetErrorMsg(){
-    if( status != VI_SUCCESS ) return "Err.";
+    if( status != VI_SUCCESS ) {
+        ErrorMassage();
+        return "VISA Err.";
+    }
     sprintf(cmd,"SYST:ERR?\n");
     return Ask(cmd);
 }
 
 bool QSCPI::isOperationCompleted(){
-    if( status != VI_SUCCESS) return "Err.";
+    if( status != VI_SUCCESS ) {
+        ErrorMassage();
+        return "VISA Err.";
+    }
     sprintf(cmd,"*OPC?\n");
     return Ask(cmd).toInt();
 }

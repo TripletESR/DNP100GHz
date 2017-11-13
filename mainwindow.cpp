@@ -27,13 +27,13 @@ MainWindow::MainWindow(QWidget *parent) :
 
     ui->lineEdit_Start->setText("4000");
     ui->lineEdit_Stop->setText("5000");
-    ui->lineEdit_Points->setText("101");
-    ui->lineEdit_Dwell->setText("300");
+    ui->spinBox_Points->setValue(101);
+    ui->spinBox_Dwell->setValue(400);
     ui->lineEdit_StepSize->setText("10 MHz");
     ui->lineEdit_RunTime->setText("~20.100 sec");
     ui->lineEdit_Multiplier->setText("1");
     ui->lineEdit_EffStart->setText("4000");
-    ui->lineEdit_EffStop->setText("5000");
+    ui->lineEdit_EffStop->setText("4100");
     ui->lineEdit_Freq->setText("4500");
     ui->lineEdit_EffFreq->setText("4500");
 
@@ -52,9 +52,9 @@ MainWindow::MainWindow(QWidget *parent) :
         //sprintf(powerMeter->cmd, ":configure:voltage:DC\n");
         //powerMeter->SendCmd(powerMeter->cmd);
     }else{
-        LogMsg("Power meter cannot be found or open.");
+        LogMsg("Power meter cannot be found or open.", 1);
         powerMeter->ErrorMassage();
-        LogMsg("VISA Error : " + powerMeter->scpi_Msg);
+        LogMsg("VISA Error : " + powerMeter->scpi_Msg, 1);
         ui->pushButton_ReadPower->setEnabled(false);
     }
 
@@ -83,7 +83,7 @@ MainWindow::MainWindow(QWidget *parent) :
         write2Device("OUTP:STAT OFF");
     }else{
         //QMessageBox::critical(this, tr("Error"), generator->errorString());
-        LogMsg("The generator cannot be found on any COM port.");
+        LogMsg("The generator cannot be found on any COM port.", 1);
         ui->statusBar->setToolTip(tr("Open error"));
         controlOnOFF(false);
         ui->pushButton_Sweep->setEnabled(false);
@@ -114,7 +114,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
         switchConnected = true;
     }else{
-        LogMsg("Connot find switch matrix.");
+        LogMsg("Connot find switch matrix.", 1);
         ui->horizontalSlider_A->setEnabled(false);
         ui->horizontalSlider_B->setEnabled(false);
     }
@@ -137,14 +137,20 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
-void MainWindow::LogMsg(QString str)
+void MainWindow::LogMsg(QString str, bool warningFlag)
 {
     msgCount ++;
     QString dateStr = QDateTime::currentDateTime().toString("HH:mm:ss ");
     QString countStr;
     countStr.sprintf("[%04d]: ", msgCount);
     str.insert(0, countStr).insert(0, dateStr);
+    if( warningFlag){
+        ui->textEdit_Log->setTextColor(QColor(255,0,0));
+    }
     ui->textEdit_Log->append(str);
+    if( warningFlag){
+        ui->textEdit_Log->setTextColor(QColor(0,0,0));
+    }
     int max = ui->textEdit_Log->verticalScrollBar()->maximum();
     ui->textEdit_Log->verticalScrollBar()->setValue(max);
 }
@@ -172,8 +178,8 @@ void MainWindow::on_pushButton_Sweep_clicked()
         double step = stepstr.toDouble();
         double start = ui->lineEdit_Start->text().toDouble();
         //double stop = ui->lineEdit_Stop->text().toDouble();
-        int points = ui->lineEdit_Points->text().toInt();
-        double waitTime = ui->lineEdit_Dwell->text().toDouble(); // in ms;
+        int points = ui->spinBox_Points->value();
+        double waitTime = ui->spinBox_Dwell->value(); // in ms;
 
         double yMin, xMin;
 
@@ -219,7 +225,9 @@ void MainWindow::on_pushButton_Sweep_clicked()
 
             //Warning when power > 20 mW;
             if( reading >= 20. ) {
-                LogMsg("######################### DANGER! power >= 20 mW !!!");
+                LogMsg("##################################################", 1);
+                LogMsg("####### DANGER! power >= 20 mW !!!  ##############", 1);
+                LogMsg("##################################################", 1);
             }
             LogMsg("reading : " + QString::number(reading));
             //reading = sin(i-1);
@@ -307,8 +315,8 @@ void MainWindow::controlOnOFF(bool IO)
     ui->pushButton_SendCommand->setEnabled(IO);
     ui->doubleSpinBox->setEnabled(IO);
     ui->doubleSpinBox_Power->setEnabled(IO);
-    ui->lineEdit_Dwell->setEnabled(IO);
-    ui->lineEdit_Points->setEnabled(IO);
+    ui->spinBox_Dwell->setEnabled(IO);
+    ui->spinBox_Points->setEnabled(IO);
     ui->lineEdit_Start->setEnabled(IO);
     ui->lineEdit_Stop->setEnabled(IO);
 
@@ -328,26 +336,23 @@ void MainWindow::on_pushButton_SendCommand_clicked()
     write2Device(ui->lineEdit->text());
 }
 
-void MainWindow::on_lineEdit_Points_textChanged(const QString &arg1)
+
+void MainWindow::on_spinBox_Points_valueChanged(int arg1)
 {
     double start = ui->lineEdit_Start->text().toDouble();
     double stop = ui->lineEdit_Stop->text().toDouble();
-    double step = (stop-start) / (arg1.toInt()-1);
-    double time = ui->lineEdit_Dwell->text().toDouble();
-    double runTime = arg1.toInt() * time / 1000.;
+    double step = (stop-start) / (arg1-1);
+    double waitTime = ui->spinBox_Dwell->value();
+    double runTime = arg1 * waitTime / 1000.;
     ui->lineEdit_StepSize->setText(QString::number(step) + " MHz");
     ui->lineEdit_RunTime->setText(QString::number(runTime) + " sec");
 }
 
-void MainWindow::on_lineEdit_Dwell_textChanged(const QString &arg1)
+void MainWindow::on_spinBox_Dwell_valueChanged(int arg1)
 {
-    int points = ui->lineEdit_Points->text().toInt();
-    double runTime = points * arg1.toDouble() / 1000.;
+    int points = ui->spinBox_Points->value();
+    double runTime = points * arg1 / 1000.;
     ui->lineEdit_RunTime->setText("~" + QString::number(runTime) + " sec");
-    if( arg1.toDouble() < 300){
-        LogMsg("The dwell time = "+ arg1 +" may be too small for the power meter to respond.");
-        LogMsg("Please consider to increase the dwell time.");
-    }
 }
 
 void MainWindow::on_lineEdit_Start_textChanged(const QString &arg1)
@@ -357,20 +362,21 @@ void MainWindow::on_lineEdit_Start_textChanged(const QString &arg1)
     ui->lineEdit_EffStart->setText(QString::number(effStart));
 
     double stop = ui->lineEdit_Stop->text().toDouble();
-    int points = ui->lineEdit_Points->text().toInt();
+    int points = ui->spinBox_Points->value();
     double range = (stop - arg1.toDouble());
     double step = range/(points-1);
     ui->lineEdit_StepSize->setText(QString::number(step) + " MHz");
 
-
     plot->xAxis->setRange((arg1.toDouble() - range*0.1)*multi, (stop +  range*0.1)*multi);
     plot->replot();
+
+    checkPowerMeterFreq(arg1.toDouble());
 }
 
 void MainWindow::on_lineEdit_Stop_textChanged(const QString &arg1)
 {
     double start = ui->lineEdit_Start->text().toDouble();
-    int points = ui->lineEdit_Points->text().toInt();
+    int points = ui->spinBox_Points->value();
     double range = (arg1.toDouble() - start);
     double step = range/(points-1);
     ui->lineEdit_StepSize->setText(QString::number(step) + " MHz");
@@ -445,10 +451,18 @@ void MainWindow::on_pushButton_ReadPower_clicked()
     sprintf(powerMeter->cmd, "sens:freq?\n");
     powerMeter->Ask(powerMeter->cmd);
 
-    sprintf(powerMeter->cmd, "READ?\n"); // for DPM
-    //sprintf(powerMeter->cmd, ":READ?\n"); // for ocilloscope
-    powerMeter->Ask(powerMeter->cmd);
-    //LogMsg("Unadjusted power reading : " + QString::number(power));
+    QString readingStr = powerMeter->Ask(powerMeter->cmd);
+    QString unit = readingStr.right(2);
+    readingStr.chop(2);
+    double reading = readingStr.toDouble();
+    //change the unit to mW for other unit.
+    if( unit == "UW" ) reading = reading / 1000.;
+
+    if( reading >= 20. ) {
+        LogMsg("##################################################", 1);
+        LogMsg("####### DANGER! power >= 20 mW !!!  ##############", 1);
+        LogMsg("##################################################", 1);
+    }
 }
 
 void MainWindow::on_actionSave_plot_triggered()
@@ -646,3 +660,15 @@ void MainWindow::on_horizontalSlider_B_valueChanged(int value)
     LogMsg("Set SwitchName B to port " + QString::number(value+1));
     SetSwitchMatrixPort("B", value);
 }
+
+void MainWindow::checkPowerMeterFreq(double freq)
+{
+    double DPMfreq = freq *24 /1000.; // in GHz with 24x multiplier
+    if( DPMfreq < 75 || DPMfreq > 110){
+        LogMsg("##################################################", 1);
+        LogMsg("The freq in the power meter : " + QString::number(DPMfreq) + " GHz.", 1);
+        LogMsg("Out of the range of the Digital Power meter!", 1);
+        LogMsg("##################################################", 1);
+    }
+}
+
