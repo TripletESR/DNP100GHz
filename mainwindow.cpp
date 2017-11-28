@@ -49,6 +49,8 @@ MainWindow::MainWindow(QWidget *parent) :
     if( powerMeter->status == VI_SUCCESS){
         LogMsg("Power meter online.");
         ui->pushButton_ReadPower->setEnabled(true);
+        ui->spinBox_AveragePoints->setEnabled(true);
+        ui->pushButton_GetNoPoint->setEnabled(true);
         //sprintf(powerMeter->cmd, ":configure:voltage:DC\n");
         //powerMeter->SendCmd(powerMeter->cmd);
     }else{
@@ -56,6 +58,8 @@ MainWindow::MainWindow(QWidget *parent) :
         powerMeter->ErrorMassage();
         LogMsg("VISA Error : " + powerMeter->scpi_Msg, 1);
         ui->pushButton_ReadPower->setEnabled(false);
+        ui->spinBox_AveragePoints->setEnabled(false);
+        ui->pushButton_GetNoPoint->setEnabled(false);
     }
 
     //============= open generator;
@@ -166,6 +170,8 @@ void MainWindow::on_pushButton_Sweep_clicked()
         ui->pushButton_RFOnOff->setEnabled(false);
         ui->comboBox_yAxis->setEnabled(false);
         ui->spinBox_Average->setEnabled(false);
+        ui->spinBox_AveragePoints->setEnabled(false);
+        ui->pushButton_GetNoPoint->setEnabled(false);
 
         ui->pushButton_Sweep->setStyleSheet("background-color: rgb(0,255,0)");
         write2Device("*BUZZER OFF");
@@ -330,9 +336,8 @@ void MainWindow::controlOnOFF(bool IO)
     //ui->pushButton_RFOnOff->setEnabled(IO);
     //ui->pushButton_Sweep->setEnabled(IO);
 
-    ui->spinBox_AveragePoints->setEnabled(IO);
-    ui->pushButton_GetNoPoint->setEnabled(IO);
-    ui->pushButton_ErrorMsg->setEnabled(IO);
+    //ui->spinBox_AveragePoints->setEnabled(IO);
+    //ui->pushButton_GetNoPoint->setEnabled(IO);
 
 }
 
@@ -678,29 +683,16 @@ void MainWindow::checkPowerMeterFreq(double freq)
     }
 }
 
-
-void MainWindow::on_pushButton_ErrorMsg_clicked()
-{
-    sprintf(powerMeter->cmd, "syst2:err?\n");
-    int ans = (powerMeter->Ask(powerMeter->cmd)).toInt();
-
-    if(ans == 0)    LogMsg("Power Meter : No error.");
-    if(ans == -100) LogMsg("Power Meter : Command error.", 1);
-    if(ans == -128) LogMsg("Power Meter : Numeric data not allowed.", 1);
-    if(ans == -365) LogMsg("Power Meter : Time out error.", 1);
-}
-
-void MainWindow::on_spinBox_AveragePoints_valueChanged(int arg1)
-{
-    sprintf(powerMeter->cmd, "calc:aver:coun %d", arg1);
-    powerMeter->SendCmd(powerMeter->cmd);
-    //qDebug() << powerMeter->cmd;
-}
-
 void MainWindow::on_pushButton_GetNoPoint_clicked()
 {
     sprintf(powerMeter->cmd, "calc:aver:coun?\n");
     int ans = (powerMeter->Ask(powerMeter->cmd)).toInt();
 
     LogMsg(" Power Meter no. of points : " + QString::number(ans) + ".");
+}
+
+void MainWindow::on_spinBox_AveragePoints_editingFinished()
+{
+    sprintf(powerMeter->cmd, "calc:aver:coun %d", ui->spinBox_AveragePoints->value());
+    powerMeter->SendCmd(powerMeter->cmd);
 }
