@@ -86,6 +86,7 @@ MainWindow::MainWindow(QWidget *parent) :
         LogMsg("The generator cannot be found on any COM port.", 1);
         ui->statusBar->setToolTip(tr("Open error"));
         controlOnOFF(false);
+        ui->pushButton_RFOnOff->setEnabled(false);
         ui->pushButton_Sweep->setEnabled(false);
     }
 
@@ -181,7 +182,7 @@ void MainWindow::on_pushButton_Sweep_clicked()
         int points = ui->spinBox_Points->value();
         double waitTime = ui->spinBox_Dwell->value(); // in ms;
 
-        double yMin, xMin;
+        double yMin = 0., xMin = 0.;
 
         int multi = ui->lineEdit_Multiplier->text().toInt();
 
@@ -299,13 +300,13 @@ void MainWindow::write2Device(const QString &msg)
 {
     const QString temp = msg + "\n";
     generator->write(temp.toStdString().c_str());
-    LogMsg("write : " + msg);
+    LogMsg("Generator write : " + msg);
 }
 
 void MainWindow::readFromDevice()
 {
     QByteArray read = generator->readAll();
-    LogMsg("ANS = " + QString(read));
+    LogMsg("Generator ans = " + QString(read));
     generatorLastRepond = QString(read);
 }
 
@@ -328,6 +329,10 @@ void MainWindow::controlOnOFF(bool IO)
     //ui->lineEdit_EffFreq->setEnabled(IO);
     //ui->pushButton_RFOnOff->setEnabled(IO);
     //ui->pushButton_Sweep->setEnabled(IO);
+
+    ui->spinBox_AveragePoints->setEnabled(IO);
+    ui->pushButton_GetNoPoint->setEnabled(IO);
+    ui->pushButton_ErrorMsg->setEnabled(IO);
 
 }
 
@@ -451,6 +456,7 @@ void MainWindow::on_pushButton_ReadPower_clicked()
     sprintf(powerMeter->cmd, "sens:freq?\n");
     powerMeter->Ask(powerMeter->cmd);
 
+    sprintf(powerMeter->cmd, "read?\n");
     QString readingStr = powerMeter->Ask(powerMeter->cmd);
     QString unit = readingStr.right(2);
     readingStr.chop(2);
@@ -571,7 +577,7 @@ void MainWindow::on_comboBox_yAxis_currentIndexChanged(int index)
     plot->graph(0)->addData(x, y);
     plot->yAxis->setLabel("power [mW]");
     // find max y
-    double yMax = 0, yMin;
+    double yMax = 0, yMin = 0;
     for(int i = 0; i < y.size(); i++){
         if(yMax < y[i]) yMax = y[i];
         if(yMin > y[i]) yMin = y[i];
@@ -672,3 +678,29 @@ void MainWindow::checkPowerMeterFreq(double freq)
     }
 }
 
+
+void MainWindow::on_pushButton_ErrorMsg_clicked()
+{
+    sprintf(powerMeter->cmd, "syst2:err?\n");
+    int ans = (powerMeter->Ask(powerMeter->cmd)).toInt();
+
+    if(ans == 0)    LogMsg("Power Meter : No error.");
+    if(ans == -100) LogMsg("Power Meter : Command error.", 1);
+    if(ans == -128) LogMsg("Power Meter : Numeric data not allowed.", 1);
+    if(ans == -365) LogMsg("Power Meter : Time out error.", 1);
+}
+
+void MainWindow::on_spinBox_AveragePoints_valueChanged(int arg1)
+{
+    sprintf(powerMeter->cmd, "calc:aver:coun %d", arg1);
+    powerMeter->SendCmd(powerMeter->cmd);
+    //qDebug() << powerMeter->cmd;
+}
+
+void MainWindow::on_pushButton_GetNoPoint_clicked()
+{
+    sprintf(powerMeter->cmd, "calc:aver:coun?\n");
+    int ans = (powerMeter->Ask(powerMeter->cmd)).toInt();
+
+    LogMsg(" Power Meter no. of points : " + QString::number(ans) + ".");
+}

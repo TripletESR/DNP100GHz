@@ -55,6 +55,11 @@ private slots:
 
     void checkPowerMeterFreq(double freq);
 
+    void on_pushButton_ErrorMsg_clicked();
+
+    void on_spinBox_AveragePoints_valueChanged(int arg1);
+
+    void on_pushButton_GetNoPoint_clicked();
 
 private:
     Ui::MainWindow *ui;
