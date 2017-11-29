@@ -102,9 +102,6 @@
       </layout>
      </widget>
     </item>
-    <item row="2" column="0" colspan="4">
-     <widget class="QCustomPlot" name="powerPlot" native="true"/>
-    </item>
     <item row="3" column="2">
      <widget class="QLabel" name="label_12">
       <property name="text">
@@ -190,7 +187,11 @@
         </widget>
        </item>
        <item row="1" column="3">
-        <widget class="QLineEdit" name="lineEdit_Start"/>
+        <widget class="QLineEdit" name="lineEdit_Start">
+         <property name="alignment">
+          <set>Qt::AlignCenter</set>
+         </property>
+        </widget>
        </item>
        <item row="4" column="2">
         <widget class="QLabel" name="label_3">
@@ -230,7 +231,11 @@
         </widget>
        </item>
        <item row="4" column="3">
-        <widget class="QLineEdit" name="lineEdit_Stop"/>
+        <widget class="QLineEdit" name="lineEdit_Stop">
+         <property name="alignment">
+          <set>Qt::AlignCenter</set>
+         </property>
+        </widget>
        </item>
        <item row="7" column="1">
         <widget class="QDoubleSpinBox" name="doubleSpinBox">
@@ -270,6 +275,9 @@
          <property name="enabled">
           <bool>false</bool>
          </property>
+         <property name="alignment">
+          <set>Qt::AlignCenter</set>
+         </property>
         </widget>
        </item>
        <item row="4" column="0">
@@ -287,6 +295,9 @@
          <property name="enabled">
           <bool>false</bool>
          </property>
+         <property name="alignment">
+          <set>Qt::AlignCenter</set>
+         </property>
         </widget>
        </item>
        <item row="6" column="0">
@@ -300,7 +311,11 @@
         </widget>
        </item>
        <item row="0" column="3">
-        <widget class="QLineEdit" name="lineEdit_Multiplier"/>
+        <widget class="QLineEdit" name="lineEdit_Multiplier">
+         <property name="alignment">
+          <set>Qt::AlignCenter</set>
+         </property>
+        </widget>
        </item>
        <item row="8" column="0">
         <widget class="QLabel" name="label_8">
@@ -389,12 +404,18 @@
          <property name="enabled">
           <bool>false</bool>
          </property>
+         <property name="alignment">
+          <set>Qt::AlignCenter</set>
+         </property>
         </widget>
        </item>
        <item row="1" column="4">
         <widget class="QLineEdit" name="lineEdit_EffStart">
          <property name="enabled">
           <bool>false</bool>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignCenter</set>
          </property>
         </widget>
        </item>
@@ -450,12 +471,19 @@
            </widget>
           </item>
           <item>
-           <widget class="QLineEdit" name="lineEdit_Freq"/>
+           <widget class="QLineEdit" name="lineEdit_Freq">
+            <property name="alignment">
+             <set>Qt::AlignCenter</set>
+            </property>
+           </widget>
           </item>
           <item>
            <widget class="QLineEdit" name="lineEdit_EffFreq">
             <property name="enabled">
              <bool>false</bool>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignCenter</set>
             </property>
            </widget>
           </item>
@@ -471,6 +499,12 @@
        </item>
       </layout>
      </widget>
+    </item>
+    <item row="2" column="1" colspan="3">
+     <widget class="QCustomPlot" name="powerPlot" native="true"/>
+    </item>
+    <item row="2" column="0">
+     <widget class="QCustomPlot" name="comparePlot" native="true"/>
     </item>
    </layout>
   </widget>

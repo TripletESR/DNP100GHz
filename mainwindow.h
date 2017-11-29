@@ -24,7 +24,7 @@ private slots:
     void on_pushButton_Sweep_clicked();
 
     void findSeriesPortDevices();
-    void write2Device(const QString &msg);
+    void write2SmallGenerator(const QString &msg);
     void readFromDevice();
 
     void SetSwitchMatrixPort(QString slot, int port);
@@ -62,8 +62,10 @@ private:
     Ui::MainWindow *ui;
 
     QCustomPlot *plot;
+    QCustomPlot *comparePlot;
 
     QSCPI * powerMeter;
+    QSCPI * DMM;
     QSerialPort * generator;
     QAxObject * switchMatrix;
 
@@ -75,7 +77,9 @@ private:
     int msgCount;
     bool switchConnected;
 
-    QVector<double> x, y, dB;
+    bool hasPowerMeter, hasDMM;
+
+    QVector<double> x, y, y2, dB, dB2;
 };
 
 #endif // MAINWINDOW_H
