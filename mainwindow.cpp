@@ -25,17 +25,17 @@ MainWindow::MainWindow(QWidget *parent) :
     plot->graph(0)->setPen(QPen(Qt::blue));
     plot->replot();
 
-    ui->lineEdit_Start->setText("4000");
-    ui->lineEdit_Stop->setText("5000");
+    ui->lineEdit_Start->setText("3900");
+    ui->lineEdit_Stop->setText("4000");
     ui->spinBox_Points->setValue(101);
     ui->spinBox_Dwell->setValue(400);
-    ui->lineEdit_StepSize->setText("10 MHz");
+    ui->lineEdit_StepSize->setText("1 MHz");
     ui->lineEdit_RunTime->setText("~20.100 sec");
-    ui->lineEdit_Multiplier->setText("1");
-    ui->lineEdit_EffStart->setText("4000");
-    ui->lineEdit_EffStop->setText("4100");
-    ui->lineEdit_Freq->setText("4500");
-    ui->lineEdit_EffFreq->setText("4500");
+    ui->lineEdit_Multiplier->setText("24");
+    ui->lineEdit_EffStart->setText(QString::number(3900*24));
+    ui->lineEdit_EffStop->setText(QString::number(4000*24));
+    ui->lineEdit_Freq->setText("4000");
+    ui->lineEdit_EffFreq->setText(QString::number(4000*24));
 
     ui->comboBox_yAxis->addItem("Linear y");
     ui->comboBox_yAxis->addItem("Log y");
