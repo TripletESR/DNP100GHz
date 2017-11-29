@@ -125,9 +125,6 @@
       </property>
      </widget>
     </item>
-    <item row="3" column="0">
-     <widget class="QComboBox" name="comboBox_yAxis"/>
-    </item>
     <item row="1" column="0">
      <widget class="QGroupBox" name="groupBox_3">
       <property name="title">
@@ -506,6 +503,9 @@
     <item row="2" column="0">
      <widget class="QCustomPlot" name="comparePlot" native="true"/>
     </item>
+    <item row="3" column="1">
+     <widget class="QComboBox" name="comboBox_yAxis"/>
+    </item>
    </layout>
   </widget>
   <widget class="QMenuBar" name="menuBar">
@@ -542,7 +542,7 @@
   </action>
   <action name="actionSave_plot">
    <property name="text">
-    <string>Save plot</string>
+    <string>Save 1-D plot</string>
    </property>
   </action>
  </widget>
