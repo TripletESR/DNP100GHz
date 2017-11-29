@@ -18,39 +18,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->textEdit_Log->append("============ Date : " + date.toString("yyyy-MM-dd HH:mm:ss"));
 
     plot = ui->powerPlot;
-    plot->xAxis->setLabel("freq. [MHz]");
-    plot->yAxis->setLabel("power [mW]");
-    plot->xAxis->setRange(900, 2100);
-    plot->addGraph();
-    plot->graph(0)->setPen(QPen(Qt::blue)); // for y, power meter
-    plot->graph(0)->setName("Power Meter");
-
-    plot->addGraph(plot->xAxis, plot->yAxis2);
-    plot->graph(1)->setPen(QPen(Qt::red)); // for y2, DMM
-    plot->graph(1)->setName("DMM");
-    plot->yAxis2->setVisible(true);
-    plot->yAxis2->setLabel("power [a.u.]");
-
-    plot->replot();
-
     comparePlot = ui->comparePlot;
-
-
-    ui->lineEdit_Start->setText("3900");
-    ui->lineEdit_Stop->setText("4000");
-    ui->spinBox_Points->setValue(101);
-    ui->spinBox_Dwell->setValue(400);
-    ui->lineEdit_StepSize->setText("1 MHz");
-    ui->lineEdit_RunTime->setText("~20.100 sec");
-    ui->lineEdit_Multiplier->setText("24");
-    ui->lineEdit_EffStart->setText(QString::number(3900*24));
-    ui->lineEdit_EffStop->setText(QString::number(4000*24));
-    ui->lineEdit_Freq->setText("4000");
-    ui->lineEdit_EffFreq->setText(QString::number(4000*24));
-
-    ui->comboBox_yAxis->addItem("Linear y");
-    ui->comboBox_yAxis->addItem("Log y");
-    ui->comboBox_yAxis->addItem("dB y");
 
     //##########################################################
     //============== opne power meter
@@ -62,11 +30,8 @@ MainWindow::MainWindow(QWidget *parent) :
         ui->pushButton_ReadPower->setEnabled(true);
         ui->spinBox_AveragePoints->setEnabled(true);
         ui->pushButton_GetNoPoint->setEnabled(true);
-        //sprintf(powerMeter->cmd, ":configure:voltage:DC\n");
-        //powerMeter->SendCmd(powerMeter->cmd);
 
         hasPowerMeter = true;
-
         //get number of point
         on_pushButton_GetNoPoint_clicked();
 
@@ -74,36 +39,29 @@ MainWindow::MainWindow(QWidget *parent) :
         LogMsg("Power meter cannot be found or open.", 1);
         powerMeter->ErrorMassage();
         LogMsg("VISA Error : " + powerMeter->scpi_Msg, 1);
-        //ui->pushButton_ReadPower->setEnabled(false);
         ui->spinBox_AveragePoints->setEnabled(false);
         ui->pushButton_GetNoPoint->setEnabled(false);
-
-        plot->yAxis->setVisible(false);
-        plot->replot();
 
         hasPowerMeter = false;
     }
 
     //=============== open DMM
-    DMM = new QSCPI((ViRsrc) "USB0::0x2A8D::0x1601::MY53102568::0::INSTR"); // DMM in ocilloscope
+    DMM = new QSCPI((ViRsrc) "USB0::0x2A8D::0x1601::MY53102568::0::INSTR"); // DMM
     if( DMM->status == VI_SUCCESS){
         connect(DMM, SIGNAL(SendMsg(QString)), this, SLOT(LogMsg(QString)));
         LogMsg("DMM is online.");
+        sprintf(DMM->cmd, ":configure:voltage:DC\n");
+        DMM->SendCmd(powerMeter->cmd);
+
         ui->pushButton_ReadPower->setEnabled(true);
         ui->spinBox_AveragePoints->setEnabled(true);
         ui->pushButton_GetNoPoint->setEnabled(true);
-        //sprintf(powerMeter->cmd, ":configure:voltage:DC\n");
-        //powerMeter->SendCmd(powerMeter->cmd);
 
         hasDMM = true;
     }else{
         LogMsg("DMM cannot be found or open.", 1);
         DMM->ErrorMassage();
         LogMsg("VISA Error : " + DMM->scpi_Msg, 1);
-        //ui->pushButton_ReadPower->setEnabled(false);
-
-        plot->yAxis2->setVisible(false);
-        plot->replot();
 
         hasDMM = false;
     }
@@ -112,22 +70,6 @@ MainWindow::MainWindow(QWidget *parent) :
     if( hasPowerMeter == false && hasDMM == false){
         ui->pushButton_ReadPower->setEnabled(false);
     }
-
-    //---- if both power meter and DMM are online
-    if( hasPowerMeter && hasDMM ){
-        plot->legend->setVisible(true);
-        plot->replot();
-
-        comparePlot->xAxis->setLabel("Power Meter [mW]");
-        comparePlot->yAxis->setLabel("DMM [a.u.]");
-        comparePlot->addGraph();
-        comparePlot->graph(0)->setPen(QPen(Qt::blue)); // for y, power meter
-
-        comparePlot->replot();
-    }
-
-    ui->comboBox_yAxis->setEnabled(false);
-    ui->spinBox_Average->setEnabled(false);
 
     //##########################################################
 
@@ -146,21 +88,59 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->lineEdit, SIGNAL(returnPressed()), this, SLOT(on_pushButton_SendCommand_clicked()));
     //connect(generator, static_cast<void (QSerialPort::*)(QSerialPort::SerialPortError)>(&QSerialPort::error),
     //        this, &MainWindow::handleError);
-    connect(generator, &QSerialPort::readyRead, this, &MainWindow::readFromDevice);
+    connect(generator, &QSerialPort::readyRead, this, &MainWindow::readFromGenerator);
 
     if(generator->open(QIODevice::ReadWrite)){
-        LogMsg("The generator is connected in " + generatorPortName + ".");
+        if( generatorType == smallGenerator){
+            LogMsg("The SMALL generator is connected in " + generatorPortName + ".");
+        }
+        if( generatorType == HMCT2220){
+            LogMsg("The HMC-T2220 generator is connected in " + generatorPortName + ".");
+        }
         ui->statusBar->setToolTip( tr("The generator is connected."));
         controlOnOFF(true);
         ui->pushButton_Sweep->setEnabled(true);
-        write2SmallGenerator("OUTP:STAT OFF");
+        write2Generator("OUTP:STAT OFF");
+
+        if( generatorType == smallGenerator){
+            ui->lineEdit_PowerStart->setEnabled(false);
+            ui->lineEdit_PowerEnd->setEnabled(false);
+            ui->spinBox_PowerStep->setEnabled(false);
+
+            ui->label_Power->setText("Power [%]");
+            ui->doubleSpinBox_Power->setMinimum(0);
+            ui->doubleSpinBox_Power->setMaximum(100);
+            ui->doubleSpinBox_Power->setSingleStep(1);
+            ui->doubleSpinBox_Power->setValue(100);
+        }
+
+        if( generatorType == HMCT2220){
+            ui->lineEdit_PowerStart->setEnabled(true);
+            ui->lineEdit_PowerEnd->setEnabled(true);
+            ui->spinBox_PowerStep->setEnabled(true);
+
+            ui->doubleSpinBox->setEnabled(false);
+            // change the name of the power line_edit
+            ui->label_Power->setText("Power [dBm]"); // 1 dBm = 10 * Log(P/1mW), P = 1mW * 10^(dBm/10)
+            ui->doubleSpinBox_Power->setMinimum(-50);
+            ui->doubleSpinBox_Power->setMaximum(20);
+            ui->doubleSpinBox_Power->setSingleStep(1);
+            ui->doubleSpinBox_Power->setValue(-50);
+        }
+
     }else{
         //QMessageBox::critical(this, tr("Error"), generator->errorString());
-        LogMsg("The generator cannot be found on any COM port.", 1);
+        LogMsg("Generator cannot be found on any COM port.", 1);
         ui->statusBar->setToolTip(tr("Open error"));
         controlOnOFF(false);
         ui->pushButton_RFOnOff->setEnabled(false);
         ui->pushButton_Sweep->setEnabled(false);
+        ui->doubleSpinBox->setEnabled(false);
+
+        ui->lineEdit_PowerStart->setEnabled(false);
+        ui->lineEdit_PowerEnd->setEnabled(false);
+        ui->spinBox_PowerStep->setEnabled(false);
+
     }
 
     //================== connect switch matrix
@@ -192,6 +172,93 @@ MainWindow::MainWindow(QWidget *parent) :
         ui->horizontalSlider_A->setEnabled(false);
         ui->horizontalSlider_B->setEnabled(false);
     }
+
+    //###################### Program mode depends on connected device
+
+    LogMsg(" ######################### ");
+    if( generatorType == smallGenerator && (hasPowerMeter ^ hasDMM)) {
+        programMode = 1;
+        LogMsg("Program mode = 1, simple measurement.");
+    }else if( hasPowerMeter && hasDMM) {
+        programMode = 2;
+        LogMsg("Program mode = 2, Calibration.");
+    }else if( generatorType == HMCT2220 & (hasPowerMeter ^ hasDMM)) {
+        programMode = 3;
+        LogMsg("Program mode = 3, Measurement with Power Adjustable");
+    }else{
+        programMode = 4;
+        LogMsg("Program mode = NA. ");
+    }
+
+    //########################## Set up the interface according to the program mode
+
+    if( programMode == 1){
+        plot->xAxis->setLabel("freq. [MHz]");
+        plot->yAxis->setLabel("power [mW]");
+        plot->addGraph();
+        plot->graph(0)->setPen(QPen(Qt::blue)); // for y, power meter
+
+        if( hasPowerMeter ) plot->graph(0)->setName("Power Meter");
+        if( hasDMM )        plot->graph(0)->setName("DMM");
+        plot->legend->setVisible(true);
+        plot->replot();
+    }
+
+    if( programMode == 2){
+        plot->xAxis->setLabel("freq. [MHz]");
+        plot->yAxis->setLabel("power [mW]");
+        plot->addGraph();
+        plot->graph(0)->setPen(QPen(Qt::blue)); // for y, power meter
+        plot->graph(0)->setName("Power Meter");
+
+        plot->addGraph(plot->xAxis, plot->yAxis2);
+        plot->graph(1)->setPen(QPen(Qt::red)); // for y2, DMM
+        plot->graph(1)->setName("DMM");
+        plot->yAxis2->setVisible(true);
+        plot->yAxis2->setLabel("power [a.u.]");
+        plot->legend->setVisible(true);
+        plot->replot();
+
+        comparePlot->xAxis->setLabel("Power Meter [mW]");
+        comparePlot->yAxis->setLabel("DMM [a.u.]");
+        comparePlot->addGraph();
+        comparePlot->graph(0)->setPen(QPen(Qt::blue)); // for y, power meter
+
+        comparePlot->replot();
+    }
+
+    if( programMode == 3 ){
+        plot->xAxis->setLabel("freq. [MHz]");
+        plot->yAxis->setLabel("power [mW]");
+        plot->addGraph();
+        plot->graph(0)->setPen(QPen(Qt::blue)); // for y, power meter
+        plot->graph(0)->setName("Power Meter");
+
+        plot->replot();
+    }
+
+    ui->lineEdit_Start->setText("3900");
+    ui->lineEdit_Stop->setText("4000");
+    ui->spinBox_Points->setValue(101);
+    ui->spinBox_Dwell->setValue(400);
+    ui->lineEdit_StepSize->setText("1 MHz");
+    ui->lineEdit_RunTime->setText("~20.100 sec");
+    ui->lineEdit_Multiplier->setText("24");
+    ui->lineEdit_EffStart->setText(QString::number(3900*24));
+    ui->lineEdit_EffStop->setText(QString::number(4000*24));
+    ui->lineEdit_Freq->setText("4000");
+    ui->lineEdit_EffFreq->setText(QString::number(4000*24));
+
+    ui->comboBox_yAxis->addItem("Linear y");
+    ui->comboBox_yAxis->addItem("Log y");
+    ui->comboBox_yAxis->addItem("dB y");
+
+    ui->lineEdit_PowerStart->setText("-50");
+    ui->lineEdit_PowerEnd->setText("10");
+    ui->spinBox_PowerStep->setValue(101);
+
+    ui->comboBox_yAxis->setEnabled(false);
+    ui->spinBox_Average->setEnabled(false);
 
 }
 
@@ -246,9 +313,9 @@ void MainWindow::on_pushButton_Sweep_clicked()
         ui->pushButton_GetNoPoint->setEnabled(false);
 
         ui->pushButton_Sweep->setStyleSheet("background-color: rgb(0,255,0)");
-        write2SmallGenerator("*BUZZER OFF");
+        write2Generator("*BUZZER OFF");
 
-        write2SmallGenerator("OUTP:STAT ON"); // switch on RF
+        write2Generator("OUTP:STAT ON"); // switch on RF
 
         //Looping===================
 
@@ -278,10 +345,11 @@ void MainWindow::on_pushButton_Sweep_clicked()
             // set generator freqeuncey
             QString input;
             input.sprintf("FREQ:CW %fMHz", freq);
-            write2SmallGenerator(input);
+            write2Generator(input);
 
             x.push_back(freq * multi);
 
+            double readingPM, readingDMM;
             //get powerMeter reading; change the power meter freq., then read
             if( hasPowerMeter ){
                 QString freqCmd = "sens:freq ";
@@ -303,26 +371,33 @@ void MainWindow::on_pushButton_Sweep_clicked()
                 QString unit = readingStr.right(2);
                 //qDebug() << "................." << readingStr << ", unit : " << unit;
                 readingStr.chop(2);
-                double reading = readingStr.toDouble();
+                readingPM = readingStr.toDouble();
                 //change the unit to mW for other unit.
-                if( unit == "UW" ) reading = reading / 1000.;
+                if( unit == "UW" ) readingPM = readingPM / 1000.;
 
                 //Warning when power > 20 mW;
-                if( reading >= 20. ) {
+                if( readingPM >= 20. ) {
                     LogMsg("##################################################", 1);
                     LogMsg("####### DANGER! power >= 20 mW !!!  ##############", 1);
                     LogMsg("##################################################", 1);
                 }
-                //LogMsg("Power Meter reading : " + QString::number(reading));
-                //reading = sin(i-1);
-                y.push_back(reading);
+
+            }
+
+            if( hasDMM ){
+                sprintf(DMM->cmd, ":READ?\n");
+                readingDMM = DMM->Ask(DMM->cmd).toDouble();
+            }
+
+            if( hasPowerMeter && !hasDMM){
+                y.push_back(readingPM);
                 if( i == 1) {
-                    yMin = reading;
+                    yMin = readingPM;
                     xMin = freq;
                 }
 
-                if( yMin > reading ){
-                    yMin = reading;
+                if( yMin > readingPM ){
+                    yMin = readingPM;
                     xMin = freq;
                 }
 
@@ -333,20 +408,50 @@ void MainWindow::on_pushButton_Sweep_clicked()
                 plot->replot();
             }
 
-            if( hasDMM ){
-                sprintf(DMM->cmd, ":READ?\n");
-                double reading = DMM->Ask(DMM->cmd).toDouble();
+            if( !hasPowerMeter && hasDMM){
+                y.push_back(readingDMM);
+                if( i == 1) {
+                    yMin = readingDMM;
+                    xMin = freq;
+                }
 
-                y2.push_back(reading);
+                if( yMin > readingDMM ){
+                    yMin = readingDMM;
+                    xMin = freq;
+                }
+
+                // plotgraph
+                plot->graph(0)->clearData();
+                plot->graph(0)->setData(x,y);
+                plot->yAxis->rescale();
+                plot->replot();
+            }
+
+
+            if(hasPowerMeter && hasDMM){
+                y.push_back(readingPM);
+                if( i == 1) {
+                    yMin = readingPM;
+                    xMin = freq;
+                }
+
+                if( yMin > readingPM ){
+                    yMin = readingPM;
+                    xMin = freq;
+                }
+
+                // plotgraph
+                plot->graph(0)->clearData();
+                plot->graph(0)->setData(x,y);
+                plot->yAxis->rescale();
+
+                y2.push_back(readingDMM);
 
                 plot->graph(1)->clearData();
                 plot->graph(1)->setData(x,y2);
                 plot->yAxis2->rescale();
                 plot->replot();
 
-            }
-
-            if(hasPowerMeter && hasDMM){
                 comparePlot->graph(0)->clearData();
                 comparePlot->graph(0)->setData(y,y2);
                 comparePlot->xAxis->rescale();
@@ -356,8 +461,8 @@ void MainWindow::on_pushButton_Sweep_clicked()
 
         }
 
-        write2SmallGenerator("OUTP:STAT OFF"); // switch off RF
-        write2SmallGenerator("*BUZZER ON");
+        write2Generator("OUTP:STAT OFF"); // switch off RF
+        write2Generator("*BUZZER ON");
         ui->pushButton_Sweep->setStyleSheet("");
 
         controlOnOFF(true);
@@ -398,21 +503,34 @@ void MainWindow::findSeriesPortDevices()
 
         LogMsg(info.portName() + ", " + info.serialNumber() + ", " + info.manufacturer());
 
+        int count = 0;
         if(info.serialNumber() == "DQ000VJLA" && info.manufacturer() == "FTDI" ){
             generatorPortName = info.portName();
+            generatorType = smallGenerator;
+            count ++;
         }
+
+        if(info.serialNumber() == "001396" && info.manufacturer() == "Microsoft" ){
+            generatorPortName = info.portName();
+            generatorType = HMCT2220;
+            count ++;
+            if( count > 1){
+                LogMsg(" Two generators found, use HMC-T222O. " ,1);
+            }
+        }
+
     }
     LogMsg ("--------------");
 }
 
-void MainWindow::write2SmallGenerator(const QString &msg)
+void MainWindow::write2Generator(const QString &msg)
 {
     const QString temp = msg + "\n";
     generator->write(temp.toStdString().c_str());
     LogMsg("Generator write : " + msg);
 }
 
-void MainWindow::readFromDevice()
+void MainWindow::readFromGenerator()
 {
     QByteArray read = generator->readAll();
     LogMsg("Generator ans = " + QString(read));
@@ -423,7 +541,7 @@ void MainWindow::controlOnOFF(bool IO)
 {
     ui->lineEdit->setEnabled(IO);
     ui->pushButton_SendCommand->setEnabled(IO);
-    ui->doubleSpinBox->setEnabled(IO);
+
     ui->doubleSpinBox_Power->setEnabled(IO);
     ui->spinBox_Dwell->setEnabled(IO);
     ui->spinBox_Points->setEnabled(IO);
@@ -442,11 +560,20 @@ void MainWindow::controlOnOFF(bool IO)
     //ui->spinBox_AveragePoints->setEnabled(IO);
     //ui->pushButton_GetNoPoint->setEnabled(IO);
 
+    if(generatorType == smallGenerator){
+        ui->doubleSpinBox->setEnabled(IO);
+    }
+
+    if(generatorType == HMCT2220){
+        ui->lineEdit_PowerStart->setEnabled(IO);
+        ui->lineEdit_PowerEnd->setEnabled(IO);
+        ui->spinBox_PowerStep->setEnabled(IO);
+    }
 }
 
 void MainWindow::on_pushButton_SendCommand_clicked()
 {
-    write2SmallGenerator(ui->lineEdit->text());
+    write2Generator(ui->lineEdit->text());
 }
 
 
@@ -504,12 +631,17 @@ void MainWindow::on_lineEdit_Stop_textChanged(const QString &arg1)
 
 void MainWindow::on_doubleSpinBox_Power_valueChanged(double arg1)
 {
-    write2SmallGenerator("PWR " + QString::number(arg1));
+    if( generatorType == smallGenerator){
+        write2Generator("PWR " + QString::number(arg1));
+    }
+    if( generatorType == HMCT2220){
+        write2Generator("Power " + QString::number(arg1));
+    }
 }
 
 void MainWindow::on_doubleSpinBox_valueChanged(double arg1)
 {
-    write2SmallGenerator("ATT " + QString::number(arg1));
+    write2Generator("ATT " + QString::number(arg1));
 }
 
 void MainWindow::on_actionSave_Data_triggered()
@@ -521,9 +653,16 @@ void MainWindow::on_actionSave_Data_triggered()
         return;
     }
 
-    if( x.size() != y.size() || x.size() != y2.size()) {
-        LogMsg("data corrupt. Please measure again.");
-        return;
+    if( programMode == 2){
+        if( x.size() != y.size() || x.size() != y2.size()) {
+            LogMsg("data corrupt. Please measure again.");
+            return;
+        }
+    }else{
+        if( x.size() != y.size()) {
+            LogMsg("data corrupt. Please measure again.");
+            return;
+        }
     }
 
     QDateTime date = QDateTime::currentDateTime();
@@ -545,11 +684,23 @@ void MainWindow::on_actionSave_Data_triggered()
     stream << lineout;
     lineout.sprintf("###number of data %d\n", size);
     stream << lineout;
-    lineout.sprintf("%10s\t%10s\t%10s\n", "freq.[Mhz]", "Power", "DMM");
+    if(programMode == 2){
+        lineout.sprintf("%10s\t%10s\t%10s\n", "freq.[Mhz]", "PowerMeter", "DMM");
+    }
+    if( hasPowerMeter && !hasDMM ){
+        lineout.sprintf("%10s\t%10s\n", "freq.[Mhz]", "Power");
+    }
+    if( !hasPowerMeter && hasDMM ){
+        lineout.sprintf("%10s\t%10s\n", "freq.[Mhz]", "DMM");
+    }
     stream << lineout;
 
     for( int i = 0; i < size; i++){
-        lineout.sprintf("%10f\t%10f\t%10f\n", x[i], y[i], y2[i]);
+        if( programMode == 2){
+            lineout.sprintf("%10f\t%10f\t%10f\n", x[i], y[i], y2[i]);
+        }else{
+            lineout.sprintf("%10f\t%10f\n", x[i], y[i]);
+        }
         stream << lineout;
     }
 
@@ -638,8 +789,8 @@ void MainWindow::on_pushButton_RFOnOff_clicked()
         double freq = ui->lineEdit_Freq->text().toDouble();
         QString inputStr;
         inputStr.sprintf("FREQ:CW %fMHz", freq);
-        write2SmallGenerator(inputStr);
-        write2SmallGenerator("OUTP:STAT ON");
+        write2Generator(inputStr);
+        write2Generator("OUTP:STAT ON");
         controlOnOFF(false);
 
         //Set power meter freq;
@@ -654,7 +805,7 @@ void MainWindow::on_pushButton_RFOnOff_clicked()
 
     }else{
         ui->pushButton_RFOnOff->setStyleSheet("");
-        write2SmallGenerator("OUTP:STAT OFF");
+        write2Generator("OUTP:STAT OFF");
         controlOnOFF(true);
     }
 
@@ -842,4 +993,31 @@ void MainWindow::on_spinBox_AveragePoints_editingFinished()
 {
     sprintf(powerMeter->cmd, "calc:aver:coun %d", ui->spinBox_AveragePoints->value());
     powerMeter->SendCmd(powerMeter->cmd);
+}
+
+void MainWindow::on_lineEdit_PowerStart_textChanged(const QString &arg1)
+{
+    double end = ui->lineEdit_PowerEnd->text().toDouble();
+    int step = ui->spinBox_PowerStep->value();
+
+    double stepSize = (end-arg1.toDouble())/(step-1);
+    ui->lineEdit_PowerStepSize->setText(QString::number(stepSize) + " dBm");
+}
+
+void MainWindow::on_lineEdit_PowerEnd_textChanged(const QString &arg1)
+{
+    double start = ui->lineEdit_PowerStart->text().toDouble();
+    int step = ui->spinBox_PowerStep->value();
+
+    double stepSize = (arg1.toDouble()-start)/(step-1);
+    ui->lineEdit_PowerStepSize->setText(QString::number(stepSize) + " dBm");
+}
+
+void MainWindow::on_spinBox_PowerStep_valueChanged(int arg1)
+{
+    double start = ui->lineEdit_PowerStart->text().toDouble();
+    double end = ui->lineEdit_PowerEnd->text().toDouble();
+
+    double stepSize = (end-start)/(arg1-1);
+    ui->lineEdit_PowerStepSize->setText(QString::number(stepSize) + " dBm");
 }
