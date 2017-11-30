@@ -198,11 +198,10 @@ MainWindow::MainWindow(QWidget *parent) :
         }
     }else{
         programMode = 4;
-        LogMsg("Program mode = NA. May be only generator is online.", Qt::blue);
+        LogMsg("Program mode = NA. Only generator is online.", Qt::blue);
+        ui->spinBox_Dwell->setMinimum(1);
     }
 
-    //test
-    programMode = 3;
 
     //########################## Set up the plot according to the program mode
 
@@ -369,134 +368,168 @@ void MainWindow::on_pushButton_Sweep_clicked()
         y2.clear();
 
         if(programMode != 3){
-            for( int i = 1 ; i <= points; i ++){
-                if(!sweepOnOff) continue;
+            if( programMode == 4 ){ // only sweep
+                double powerStart = ui->lineEdit_PowerStart->text().toDouble();
+                double powerEnd = ui->lineEdit_PowerEnd->text().toDouble();
+                int powerStep = ui->spinBox_PowerStep->value();
+                double powerStepSize = (powerEnd-powerStart)/(powerStep-1);
 
-                double freq = start + (i-1) * step;
-                qDebug() << i << "," <<  freq;
 
-                // set generator freqeuncey
-                QString input;
-                input.sprintf("FREQ:CW %fMHz", freq);
-                write2Generator(input);
-                x.push_back(freq * multi);
+                for( int j = 1; j < powerStep; j++){
+                    if(!sweepOnOff) break;
+                    double power = powerStart + (j-1) * powerStepSize;
+                    //set HMC-T2220 power
+                    write2Generator("Power " + QString::number(power));
 
-                double readingPM, readingDMM;
-                //get powerMeter reading; change the power meter freq., then read
-                if( hasPowerMeter ){
-                    QString freqCmd = "sens:freq ";
-                    QString freqStr;
-                    freqStr.sprintf("%6.2f",freq/1000.*24); // in GHz, also with 4 and 6 mulipiler.
-                    freqStr.remove(" ");
-                    freqCmd = freqCmd + freqStr;
-                    //qDebug() << "-----------" << freqCmd;
-                    sprintf(powerMeter->cmd, "%s\n", freqCmd.toStdString().c_str());
-                    powerMeter->SendCmd(powerMeter->cmd);
+                    for( int i = 1 ; i <= points; i ++){
+                        if(!sweepOnOff) break;
+                        double freq = start + (i-1) * step;
+                        qDebug() << "(" << i << "," << j << ") = (" <<  freq << " MHz," << power <<" dBm)";
 
-                    //wait for waittime, for the powereter to measure the freq.
-                    QEventLoop eventLoop;
-                    QTimer::singleShot(waitTime, &eventLoop, SLOT(quit()));
-                    eventLoop.exec();
+                        // set generator freqeuncey
+                        QString input;
+                        input.sprintf("FREQ:CW %fMHz", freq);
+                        write2Generator(input);
 
-                    sprintf(powerMeter->cmd, "READ?\n");
-                    QString readingStr = powerMeter->Ask(powerMeter->cmd);
-                    QString unit = readingStr.right(2);
-                    //qDebug() << "................." << readingStr << ", unit : " << unit;
-                    readingStr.chop(2);
-                    readingPM = readingStr.toDouble();
-                    //change the unit to mW for other unit.
-                    if( unit == "UW" ) readingPM = readingPM / 1000.;
+                        //wait for waittime, for the powereter to measure the freq.
+                        QEventLoop eventLoop;
+                        QTimer::singleShot(waitTime, &eventLoop, SLOT(quit()));
+                        eventLoop.exec();
 
-                    //Warning when power > 20 mW;
-                    if( readingPM >= 20. ) {
-                        LogMsg("##################################################", Qt::red);
-                        LogMsg("####### DANGER! power >= 20 mW !!!  ##############", Qt::red);
-                        LogMsg("##################################################", Qt::red);
+
+                    } // end of for-loop for freqeuncy
+                } // end of for-loop for power
+
+            }else{
+                for( int i = 1 ; i <= points; i ++){
+                    if(!sweepOnOff) break;
+
+                    double freq = start + (i-1) * step;
+                    qDebug() << i << "," <<  freq;
+
+                    // set generator freqeuncey
+                    QString input;
+                    input.sprintf("FREQ:CW %fMHz", freq);
+                    write2Generator(input);
+                    x.push_back(freq * multi);
+
+                    double readingPM, readingDMM;
+                    //get powerMeter reading; change the power meter freq., then read
+                    if( hasPowerMeter ){
+                        QString freqCmd = "sens:freq ";
+                        QString freqStr;
+                        freqStr.sprintf("%6.2f",freq/1000.*24); // in GHz, also with 4 and 6 mulipiler.
+                        freqStr.remove(" ");
+                        freqCmd = freqCmd + freqStr;
+                        //qDebug() << "-----------" << freqCmd;
+                        sprintf(powerMeter->cmd, "%s\n", freqCmd.toStdString().c_str());
+                        powerMeter->SendCmd(powerMeter->cmd);
+
+                        //wait for waittime, for the powereter to measure the freq.
+                        QEventLoop eventLoop;
+                        QTimer::singleShot(waitTime, &eventLoop, SLOT(quit()));
+                        eventLoop.exec();
+
+                        sprintf(powerMeter->cmd, "READ?\n");
+                        QString readingStr = powerMeter->Ask(powerMeter->cmd);
+                        QString unit = readingStr.right(2);
+                        //qDebug() << "................." << readingStr << ", unit : " << unit;
+                        readingStr.chop(2);
+                        readingPM = readingStr.toDouble();
+                        //change the unit to mW for other unit.
+                        if( unit == "UW" ) readingPM = readingPM / 1000.;
+
+                        //Warning when power > 20 mW;
+                        if( readingPM >= 20. ) {
+                            LogMsg("##################################################", Qt::red);
+                            LogMsg("####### DANGER! power >= 20 mW !!!  ##############", Qt::red);
+                            LogMsg("##################################################", Qt::red);
+                        }
+
                     }
 
-                }
+                    if( hasDMM ){
+                        sprintf(DMM->cmd, ":READ?\n");
+                        readingDMM = DMM->Ask(DMM->cmd).toDouble();
 
-                if( hasDMM ){
-                    sprintf(DMM->cmd, ":READ?\n");
-                    readingDMM = DMM->Ask(DMM->cmd).toDouble();
-
-                    //wait for waittime, for the powereter to measure the freq.
-                    QEventLoop eventLoop;
-                    QTimer::singleShot(waitTime, &eventLoop, SLOT(quit()));
-                    eventLoop.exec();
-                }
-
-                // fill plot
-                if( hasPowerMeter && !hasDMM){
-                    y.push_back(readingPM);
-                    if( i == 1) {
-                        yMin = readingPM;
-                        xMin = freq;
+                        //wait for waittime, for the powereter to measure the freq.
+                        QEventLoop eventLoop;
+                        QTimer::singleShot(waitTime, &eventLoop, SLOT(quit()));
+                        eventLoop.exec();
                     }
 
-                    if( yMin > readingPM ){
-                        yMin = readingPM;
-                        xMin = freq;
+                    // fill plot
+                    if( hasPowerMeter && !hasDMM){
+                        y.push_back(readingPM);
+                        if( i == 1) {
+                            yMin = readingPM;
+                            xMin = freq;
+                        }
+
+                        if( yMin > readingPM ){
+                            yMin = readingPM;
+                            xMin = freq;
+                        }
+
+                        // plotgraph
+                        plot->graph(0)->clearData();
+                        plot->graph(0)->setData(x,y);
+                        plot->yAxis->rescale();
+                        plot->replot();
                     }
 
-                    // plotgraph
-                    plot->graph(0)->clearData();
-                    plot->graph(0)->setData(x,y);
-                    plot->yAxis->rescale();
-                    plot->replot();
-                }
+                    if( !hasPowerMeter && hasDMM){
+                        y.push_back(readingDMM);
+                        if( i == 1) {
+                            yMin = readingDMM;
+                            xMin = freq;
+                        }
 
-                if( !hasPowerMeter && hasDMM){
-                    y.push_back(readingDMM);
-                    if( i == 1) {
-                        yMin = readingDMM;
-                        xMin = freq;
+                        if( yMin > readingDMM ){
+                            yMin = readingDMM;
+                            xMin = freq;
+                        }
+
+                        // plotgraph
+                        plot->graph(0)->clearData();
+                        plot->graph(0)->setData(x,y);
+                        plot->yAxis->rescale();
+                        plot->replot();
                     }
 
-                    if( yMin > readingDMM ){
-                        yMin = readingDMM;
-                        xMin = freq;
+                    if(hasPowerMeter && hasDMM){
+                        y.push_back(readingPM);
+                        if( i == 1) {
+                            yMin = readingPM;
+                            xMin = freq;
+                        }
+
+                        if( yMin > readingPM ){
+                            yMin = readingPM;
+                            xMin = freq;
+                        }
+
+                        // plotgraph
+                        plot->graph(0)->clearData();
+                        plot->graph(0)->setData(x,y);
+                        plot->yAxis->rescale();
+
+                        y2.push_back(readingDMM);
+
+                        plot->graph(1)->clearData();
+                        plot->graph(1)->setData(x,y2);
+                        plot->yAxis2->rescale();
+                        plot->replot();
+
+                        auxPlot->graph(0)->clearData();
+                        auxPlot->graph(0)->setData(y,y2);
+                        auxPlot->xAxis->rescale();
+                        auxPlot->yAxis->rescale();
+                        auxPlot->replot();
                     }
 
-                    // plotgraph
-                    plot->graph(0)->clearData();
-                    plot->graph(0)->setData(x,y);
-                    plot->yAxis->rescale();
-                    plot->replot();
-                }
-
-                if(hasPowerMeter && hasDMM){
-                    y.push_back(readingPM);
-                    if( i == 1) {
-                        yMin = readingPM;
-                        xMin = freq;
-                    }
-
-                    if( yMin > readingPM ){
-                        yMin = readingPM;
-                        xMin = freq;
-                    }
-
-                    // plotgraph
-                    plot->graph(0)->clearData();
-                    plot->graph(0)->setData(x,y);
-                    plot->yAxis->rescale();
-
-                    y2.push_back(readingDMM);
-
-                    plot->graph(1)->clearData();
-                    plot->graph(1)->setData(x,y2);
-                    plot->yAxis2->rescale();
-                    plot->replot();
-
-                    auxPlot->graph(0)->clearData();
-                    auxPlot->graph(0)->setData(y,y2);
-                    auxPlot->xAxis->rescale();
-                    auxPlot->yAxis->rescale();
-                    auxPlot->replot();
-                }
-
-            } // end of for-loop for freqeuncy
+                } // end of for-loop for freqeuncy
+            }
         }else{
 
             colorMap->data()->clear();
@@ -513,7 +546,7 @@ void MainWindow::on_pushButton_Sweep_clicked()
 
 
             for( int j = 1; j < powerStep; j++){
-
+                if(!sweepOnOff) break;
                 double power = powerStart + (j-1) * powerStepSize;
                 y2.push_back(power);
 
@@ -537,7 +570,7 @@ void MainWindow::on_pushButton_Sweep_clicked()
                     double readingPM, readingDMM;
                     //get powerMeter reading; change the power meter freq., then read
                     if( hasPowerMeter ){
-                        if(!sweepOnOff) continue;
+                        if(!sweepOnOff) break;
 
                         plot->graph(0)->setName("Power Meter, (" + QString::number(freq) + " MHz," + QString::number(power) + " dBm)");
 
@@ -625,8 +658,10 @@ void MainWindow::on_pushButton_Sweep_clicked()
 
         }
 
-        write2Generator("OUTP:STAT OFF"); // switch off RF
-        write2Generator("*BUZZER ON");
+        if( generatorType == smallGenerator){
+            write2Generator("OUTP:STAT OFF"); // switch off RF
+            write2Generator("*BUZZER ON");
+        }
         ui->pushButton_Sweep->setStyleSheet("");
 
         controlOnOFF(true);
@@ -636,9 +671,11 @@ void MainWindow::on_pushButton_Sweep_clicked()
         ui->spinBox_Average->setEnabled(true);
         ui->spinBox_Average->setValue(1);
 
-        QString msg;
-        msg.sprintf("Min(x,y) = (%f, %f)", xMin, yMin);
-        LogMsg(msg);
+        if( programMode !=4 ){
+            QString msg;
+            msg.sprintf("Min(x,y) = (%f, %f)", xMin, yMin);
+            LogMsg(msg);
+        }
 
         sweepOnOff = false;
 
