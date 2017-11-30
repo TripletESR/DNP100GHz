@@ -69,11 +69,14 @@ private slots:
 
     void on_spinBox_PowerStep_valueChanged(int arg1);
 
+    void on_actionSave_2_D_plot_triggered();
+
 private:
     Ui::MainWindow *ui;
 
     QCustomPlot *plot;
-    QCustomPlot *comparePlot;
+    QCustomPlot *auxPlot;
+    QCPColorMap * colorMap;
 
     QSCPI * powerMeter;
     QSCPI * DMM;
@@ -99,6 +102,9 @@ private:
                      // if two generaotrs and PM and DMM are connected, it is mode 2 using Hittite
 
     QVector<double> x, y, y2, dB, dB2;
+
+    QVector<double> * z; // for freq-power colorMap plot
+
 };
 
 #endif // MAINWINDOW_H

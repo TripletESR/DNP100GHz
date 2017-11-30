@@ -14,7 +14,7 @@
    <string>DNP 100GHz -- Power Meter</string>
   </property>
   <widget class="QWidget" name="centralWidget">
-   <layout class="QGridLayout" name="gridLayout_3" rowstretch="1,1,2,1,1" columnstretch="1,0,0,0">
+   <layout class="QGridLayout" name="gridLayout_3" rowstretch="1,1,2,1,1" columnstretch="2,1,1,1">
     <item row="3" column="2">
      <widget class="QLabel" name="label_12">
       <property name="text">
@@ -613,6 +613,7 @@
     </property>
     <addaction name="actionSave_Data"/>
     <addaction name="actionSave_plot"/>
+    <addaction name="actionSave_2_D_plot"/>
    </widget>
    <addaction name="menuFile"/>
   </widget>
@@ -633,6 +634,11 @@
   <action name="actionSave_plot">
    <property name="text">
     <string>Save 1-D plot</string>
+   </property>
+  </action>
+  <action name="actionSave_2_D_plot">
+   <property name="text">
+    <string>Save 2-D plot</string>
    </property>
   </action>
  </widget>
