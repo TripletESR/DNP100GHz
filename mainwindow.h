@@ -25,7 +25,7 @@ public:
     ~MainWindow();
 
 private slots:
-    void LogMsg(QString str, bool warningFlag = false);
+    void LogMsg(QString str, QColor color = Qt::black);
     void on_pushButton_Sweep_clicked();
 
     void findSeriesPortDevices();
@@ -82,6 +82,7 @@ private:
 
     QString generatorPortName;
     QString generatorLastRepond;
+    int generatorCount;
 
     bool rfOnOff;
     bool sweepOnOff;

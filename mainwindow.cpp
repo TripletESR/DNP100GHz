@@ -27,22 +27,23 @@ MainWindow::MainWindow(QWidget *parent) :
     if( powerMeter->status == VI_SUCCESS){
         connect(powerMeter, SIGNAL(SendMsg(QString)), this, SLOT(LogMsg(QString)));
         LogMsg("Power meter online.");
+        hasPowerMeter = true;
+
         ui->pushButton_ReadPower->setEnabled(true);
         ui->spinBox_AveragePoints->setEnabled(true);
         ui->pushButton_GetNoPoint->setEnabled(true);
-
-        hasPowerMeter = true;
         //get number of point
         on_pushButton_GetNoPoint_clicked();
 
     }else{
-        LogMsg("Power meter cannot be found or open.", 1);
+        LogMsg("Power meter cannot be found or open.", Qt::red);
         powerMeter->ErrorMassage();
-        LogMsg("VISA Error : " + powerMeter->scpi_Msg, 1);
+        LogMsg("VISA Error : " + powerMeter->scpi_Msg, Qt::red);
+        hasPowerMeter = false;
+
+        ui->pushButton_ReadPower->setEnabled(false);
         ui->spinBox_AveragePoints->setEnabled(false);
         ui->pushButton_GetNoPoint->setEnabled(false);
-
-        hasPowerMeter = false;
     }
 
     //=============== open DMM
@@ -50,29 +51,19 @@ MainWindow::MainWindow(QWidget *parent) :
     if( DMM->status == VI_SUCCESS){
         connect(DMM, SIGNAL(SendMsg(QString)), this, SLOT(LogMsg(QString)));
         LogMsg("DMM is online.");
-        sprintf(DMM->cmd, ":configure:voltage:DC\n");
-        DMM->SendCmd(powerMeter->cmd);
+        hasDMM = true;
 
         ui->pushButton_ReadPower->setEnabled(true);
-        ui->spinBox_AveragePoints->setEnabled(true);
-        ui->pushButton_GetNoPoint->setEnabled(true);
-
-        hasDMM = true;
     }else{
-        LogMsg("DMM cannot be found or open.", 1);
+        LogMsg("DMM cannot be found or open.", Qt::red);
         DMM->ErrorMassage();
-        LogMsg("VISA Error : " + DMM->scpi_Msg, 1);
-
+        LogMsg("VISA Error : " + DMM->scpi_Msg, Qt::red);
         hasDMM = false;
-    }
 
-    //---- if no power meter and DMM is online, disable button.
-    if( hasPowerMeter == false && hasDMM == false){
         ui->pushButton_ReadPower->setEnabled(false);
     }
 
     //##########################################################
-
     //============= open generator;
     generatorPortName = "";
     findSeriesPortDevices(); // this locate the generatorPortName;
@@ -130,7 +121,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
     }else{
         //QMessageBox::critical(this, tr("Error"), generator->errorString());
-        LogMsg("Generator cannot be found on any COM port.", 1);
+        LogMsg("Generator cannot be found on any COM port.", Qt::red);
         ui->statusBar->setToolTip(tr("Open error"));
         controlOnOFF(false);
         ui->pushButton_RFOnOff->setEnabled(false);
@@ -168,7 +159,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
         switchConnected = true;
     }else{
-        LogMsg("Connot find switch matrix.", 1);
+        LogMsg("Connot find switch matrix.", Qt::red);
         ui->horizontalSlider_A->setEnabled(false);
         ui->horizontalSlider_B->setEnabled(false);
     }
@@ -178,19 +169,33 @@ MainWindow::MainWindow(QWidget *parent) :
     LogMsg(" ######################### ");
     if( generatorType == smallGenerator && (hasPowerMeter ^ hasDMM)) {
         programMode = 1;
-        LogMsg("Program mode = 1, simple measurement.");
+        if(hasPowerMeter){
+            LogMsg("Program mode = 1, simple measurement with Small generator + Power Meter", Qt::blue);
+        }
+        if(hasDMM){
+            LogMsg("Program mode = 1, simple measurement with Small generator + DMM", Qt::blue);
+        }
     }else if( hasPowerMeter && hasDMM) {
         programMode = 2;
-        LogMsg("Program mode = 2, Calibration.");
-    }else if( generatorType == HMCT2220 & (hasPowerMeter ^ hasDMM)) {
+        LogMsg("Program mode = 2, Calibration.", Qt::blue);
+        if( generatorCount > 1){
+            LogMsg("Two generators are online, using HMC-T2220.", Qt::blue);
+        }
+        LogMsg("If you DON'T want to be calibration, please disconnect the Power Meter or DMM.", Qt::blue);
+    }else if( generatorType == HMCT2220 && (hasPowerMeter ^ hasDMM)) {
         programMode = 3;
-        LogMsg("Program mode = 3, Measurement with Power Adjustable");
+        if(hasPowerMeter){
+            LogMsg("Program mode = 3, Measurement with HMC-T2220 + Power Meter", Qt::blue);
+        }
+        if(hasDMM){
+            LogMsg("Program mode = 3, Measurement with HMC-T2220 + DMM", Qt::blue);
+        }
     }else{
         programMode = 4;
-        LogMsg("Program mode = NA. ");
+        LogMsg("Program mode = NA. May be only generator is online.", Qt::blue);
     }
 
-    //########################## Set up the interface according to the program mode
+    //########################## Set up the plot according to the program mode
 
     if( programMode == 1){
         plot->xAxis->setLabel("freq. [MHz]");
@@ -202,6 +207,7 @@ MainWindow::MainWindow(QWidget *parent) :
         if( hasDMM )        plot->graph(0)->setName("DMM");
         plot->legend->setVisible(true);
         plot->replot();
+
     }
 
     if( programMode == 2){
@@ -232,9 +238,13 @@ MainWindow::MainWindow(QWidget *parent) :
         plot->yAxis->setLabel("power [mW]");
         plot->addGraph();
         plot->graph(0)->setPen(QPen(Qt::blue)); // for y, power meter
-        plot->graph(0)->setName("Power Meter");
-
+        if( hasPowerMeter ) plot->graph(0)->setName("Power Meter");
+        if( hasDMM )        plot->graph(0)->setName("DMM");
         plot->replot();
+
+        comparePlot->xAxis->setLabel("freq. [MHz]");
+        comparePlot->yAxis->setLabel("Power [dBm]");
+
     }
 
     ui->lineEdit_Start->setText("3900");
@@ -279,20 +289,18 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
-void MainWindow::LogMsg(QString str, bool warningFlag)
+void MainWindow::LogMsg(QString str, QColor color)
 {
     msgCount ++;
     QString dateStr = QDateTime::currentDateTime().toString("HH:mm:ss ");
     QString countStr;
     countStr.sprintf("[%04d]: ", msgCount);
     str.insert(0, countStr).insert(0, dateStr);
-    if( warningFlag){
-        ui->textEdit_Log->setTextColor(QColor(255,0,0));
-    }
+
+    ui->textEdit_Log->setTextColor(color);
     ui->textEdit_Log->append(str);
-    if( warningFlag){
-        ui->textEdit_Log->setTextColor(QColor(0,0,0));
-    }
+    ui->textEdit_Log->setTextColor(QColor(0,0,0));
+
     int max = ui->textEdit_Log->verticalScrollBar()->maximum();
     ui->textEdit_Log->verticalScrollBar()->setValue(max);
 }
@@ -301,7 +309,7 @@ void MainWindow::on_pushButton_Sweep_clicked()
 {
     sweepOnOff = !sweepOnOff;
 
-    LogMsg("======= Sweeping Start! ", 1);
+    LogMsg("======= Sweeping Start! ", Qt::blue);
 
     if( sweepOnOff ){
         controlOnOFF(false);
@@ -377,9 +385,9 @@ void MainWindow::on_pushButton_Sweep_clicked()
 
                 //Warning when power > 20 mW;
                 if( readingPM >= 20. ) {
-                    LogMsg("##################################################", 1);
-                    LogMsg("####### DANGER! power >= 20 mW !!!  ##############", 1);
-                    LogMsg("##################################################", 1);
+                    LogMsg("##################################################", Qt::red);
+                    LogMsg("####### DANGER! power >= 20 mW !!!  ##############", Qt::red);
+                    LogMsg("##################################################", Qt::red);
                 }
 
             }
@@ -503,19 +511,19 @@ void MainWindow::findSeriesPortDevices()
 
         LogMsg(info.portName() + ", " + info.serialNumber() + ", " + info.manufacturer());
 
-        int count = 0;
+        generatorCount = 0;
         if(info.serialNumber() == "DQ000VJLA" && info.manufacturer() == "FTDI" ){
             generatorPortName = info.portName();
             generatorType = smallGenerator;
-            count ++;
+            generatorCount ++;
         }
 
         if(info.serialNumber() == "001396" && info.manufacturer() == "Microsoft" ){
             generatorPortName = info.portName();
             generatorType = HMCT2220;
-            count ++;
-            if( count > 1){
-                LogMsg(" Two generators found, use HMC-T222O. " ,1);
+            generatorCount ++;
+            if( generatorCount > 1){
+                LogMsg(" Two generators found, use HMC-T222O. " , Qt::blue);
             }
         }
 
@@ -726,9 +734,9 @@ void MainWindow::on_pushButton_ReadPower_clicked()
         if( unit == "UW" ) reading = reading / 1000.;
 
         if( reading >= 20. ) {
-            LogMsg("##################################################", 1);
-            LogMsg("####### DANGER! power >= 20 mW !!!  ##############", 1);
-            LogMsg("##################################################", 1);
+            LogMsg("##################################################", Qt::red);
+            LogMsg("####### DANGER! power >= 20 mW !!!  ##############", Qt::red);
+            LogMsg("##################################################", Qt::red);
         }
     }
 
@@ -974,10 +982,10 @@ void MainWindow::checkPowerMeterFreq(double freq)
 {
     double DPMfreq = freq *24 /1000.; // in GHz with 24x multiplier
     if( DPMfreq < 75 || DPMfreq > 110){
-        LogMsg("##################################################", 1);
-        LogMsg("The freq in the power meter : " + QString::number(DPMfreq) + " GHz.", 1);
-        LogMsg("Out of the range of the Digital Power meter!", 1);
-        LogMsg("##################################################", 1);
+        LogMsg("##################################################", Qt::red);
+        LogMsg("The freq in the power meter : " + QString::number(DPMfreq) + " GHz.", Qt::red);
+        LogMsg("Out of the range of the Digital Power meter!", Qt::red);
+        LogMsg("##################################################", Qt::red);
     }
 }
 
