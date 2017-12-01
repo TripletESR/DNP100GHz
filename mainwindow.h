@@ -71,12 +71,19 @@ private slots:
 
     void on_actionSave_2_D_plot_triggered();
 
+    void on_checkBox_Normalize_clicked(bool checked);
+
+    void on_lineEdit_dBm_textChanged(const QString &arg1);
+
+    void on_lineEdit_mW_textChanged(const QString &arg1);
+
 private:
     Ui::MainWindow *ui;
 
     QCustomPlot *plot;
     QCustomPlot *auxPlot;
     QCPColorMap * colorMap;
+    QCPColorScale * colorScale;
 
     QSCPI * powerMeter;
     QSCPI * DMM;
@@ -104,6 +111,8 @@ private:
     QVector<double> x, y, y2, dB, dB2;
 
     QVector<double> * z; // for freq-power colorMap plot
+
+    bool stopdBm2mW, stopmW2dBm;
 
 };
 

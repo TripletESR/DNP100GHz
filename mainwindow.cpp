@@ -13,6 +13,8 @@ MainWindow::MainWindow(QWidget *parent) :
     rfOnOff = false;
     sweepOnOff = 0;
     msgCount = 0;
+    stopdBm2mW = false;
+    stopmW2dBm = false;
 
     z = NULL;
 
@@ -22,7 +24,9 @@ MainWindow::MainWindow(QWidget *parent) :
     plot = ui->powerPlot;
     auxPlot = ui->comparePlot;
     colorMap = NULL;
+    colorScale = NULL;
     ui->actionSave_2_D_plot->setEnabled(false);
+    ui->checkBox_Normalize->setEnabled(false);
 
     //##########################################################
     //============== opne power meter
@@ -205,7 +209,8 @@ MainWindow::MainWindow(QWidget *parent) :
     }
 
     //test
-    //programMode = 2;
+    //programMode = 3;
+    //hasDMM = true;
     //ui->pushButton_Sweep->setEnabled(true);
 
     //########################## Set up the plot according to the program mode
@@ -218,11 +223,11 @@ MainWindow::MainWindow(QWidget *parent) :
 
         if( hasPowerMeter ){
             plot->graph(0)->setName("DPM");
-            plot->yAxis->setLabel("power [mW]");
+            plot->yAxis->setLabel("DPM power [mW]");
         }
         if( hasDMM ) {
             plot->graph(0)->setName("DMM");
-            plot->yAxis->setLabel("power [mV]");
+            plot->yAxis->setLabel("DMM power [mV]");
         }
         plot->legend->setVisible(true);
         plot->replot();
@@ -256,23 +261,16 @@ MainWindow::MainWindow(QWidget *parent) :
         ui->lineEdit_PowerStart->setEnabled(false);
         ui->lineEdit_PowerEnd->setEnabled(false);
         ui->spinBox_PowerStep->setEnabled(false);
+
     }
 
     if( programMode == 3 ){
         plot->xAxis->setLabel("freq. [MHz]");
         plot->addGraph();
-        plot->graph(0)->setPen(QPen(Qt::blue)); // for y, DPM
-        if( hasPowerMeter ) {
-            plot->graph(0)->setName("DPM");
-            plot->yAxis->setLabel("DPM power [mW]");
-        }
-        if( hasDMM ) {
-            plot->graph(0)->setName("DMM");
-            plot->yAxis->setLabel("DMM power [mW]");
-        }
         plot->legend->setVisible(true);
+        ui->checkBox_Normalize->setChecked(false);
+        on_checkBox_Normalize_clicked(false);
         plot->replot();
-
 
         auxPlot->xAxis->setLabel("freq. [MHz]");
         auxPlot->yAxis->setLabel("Input power [dBm]");
@@ -281,7 +279,7 @@ MainWindow::MainWindow(QWidget *parent) :
         colorMap->data()->setRange(QCPRange(3900*24, 4000*24), QCPRange(-50,10));// set the x, y axis range
         colorMap->rescaleAxes();
 
-        QCPColorScale * colorScale = new QCPColorScale(auxPlot);
+        colorScale = new QCPColorScale(auxPlot);
         auxPlot->plotLayout()->addElement(0, 1, colorScale); // add it to the right of the main axis rect
         colorScale->setType(QCPAxis::atRight); // scale shall be vertical bar with tick/axis labels right (actually atRight is already the default)
         colorMap->setColorScale(colorScale); // associate the color map with the color scale
@@ -295,6 +293,7 @@ MainWindow::MainWindow(QWidget *parent) :
         auxPlot->replot();
 
         ui->actionSave_2_D_plot->setEnabled(true);
+        ui->checkBox_Normalize->setEnabled(true);
     }
 
     ui->lineEdit_Start->setText("3900");
@@ -345,7 +344,9 @@ MainWindow::~MainWindow()
     delete DMM;
     delete generator;
     delete plot;
+    if(colorScale != NULL) delete colorScale;
     if(colorMap != NULL) delete colorMap;
+    delete auxPlot;
     delete ui;
 }
 
@@ -512,9 +513,9 @@ void MainWindow::on_pushButton_Sweep_clicked()
                         readingDMM = DMM->Ask(DMM->cmd).toDouble() * 1000; // to mV
 
                         //wait for waittime, for the powereter to measure the freq.
-                        QEventLoop eventLoop;
-                        QTimer::singleShot(waitTime, &eventLoop, SLOT(quit()));
-                        eventLoop.exec();
+                        //QEventLoop eventLoop;
+                        //QTimer::singleShot(waitTime, &eventLoop, SLOT(quit()));
+                        //eventLoop.exec();
                     }
 
                     // fill plot
@@ -589,11 +590,10 @@ void MainWindow::on_pushButton_Sweep_clicked()
 
                 } // end of for-loop for freqeuncy
             }
-        }else{
+        }else{ // for programMode == 3
 
             colorMap->data()->clear();
             y2.clear(); // in this case, y2 save the power;
-
 
             double powerStart = ui->lineEdit_PowerStart->text().toDouble();
             double powerEnd = ui->lineEdit_PowerEnd->text().toDouble();
@@ -632,7 +632,11 @@ void MainWindow::on_pushButton_Sweep_clicked()
                     if( hasPowerMeter ){
                         if(!sweepOnOff) break;
 
-                        plot->graph(0)->setName("DPM, " + QString::number(power) + " dBm");
+                        if( ui->checkBox_Normalize->isChecked()){
+                            plot->graph(0)->setName("DPM normalized, " + QString::number(power) + " dBm");
+                        }else{
+                            plot->graph(0)->setName("DPM, " + QString::number(power) + " dBm");
+                        }
 
                         QString freqCmd = "sens:freq ";
                         QString freqStr;
@@ -668,8 +672,11 @@ void MainWindow::on_pushButton_Sweep_clicked()
 
                     if( hasDMM ){
 
-                        plot->graph(0)->setName("DMM, " +  QString::number(power) + " dBm");
-
+                        if( ui->checkBox_Normalize->isChecked()){
+                            plot->graph(0)->setName("DMM normalized, " + QString::number(power) + " dBm");
+                        }else{
+                            plot->graph(0)->setName("DMM, " + QString::number(power) + " dBm");
+                        }
                         sprintf(DMM->cmd, ":READ?\n");
                         readingDMM = DMM->Ask(DMM->cmd).toDouble() * 1000;
 
@@ -680,10 +687,14 @@ void MainWindow::on_pushButton_Sweep_clicked()
                     }
 
                     double reading;
+                    double normFactor = 1;
+                    if( ui->checkBox_Normalize->isChecked()) {
+                        normFactor = pow(10, power/10.);  // in mW
+                    }
                     if( hasPowerMeter && !hasDMM){
-                        reading = readingPM;
+                        reading = readingPM / normFactor;
                     }else if( !hasPowerMeter && hasDMM ){
-                        reading = readingDMM;
+                        reading = readingDMM / normFactor;
                     }else{
                         reading = 0.;
                     }
@@ -1157,11 +1168,16 @@ void MainWindow::on_lineEdit_Freq_textChanged(const QString &arg1)
 
 void MainWindow::on_comboBox_yAxis_currentIndexChanged(int index)
 {
-    //qDebug() << "index : " << index ;
-    //plot->graph(0)->clearData();
-    //plot->graph(0)->addData(x, y);
-    //plot->yAxis->setLabel("Power [mW]");
-    // find max y
+    qDebug() << "index : " << index ;
+
+    if( x.isEmpty()) return;
+
+    if( programMode == 2 ) return;
+
+    plot->graph(0)->clearData();
+    plot->graph(0)->addData(x, y);
+    plot->yAxis->setLabel("Power [mW]");
+
     if(hasPowerMeter){
         double yMax = 0, yMin = 0;
         for(int i = 0; i < y.size(); i++){
@@ -1186,7 +1202,7 @@ void MainWindow::on_comboBox_yAxis_currentIndexChanged(int index)
             plot->yAxis->setScaleType(QCPAxis::stLinear);
             plot->graph(0)->clearData();
             plot->graph(0)->addData(x, dB);
-            plot->yAxis->setLabel("power [dBm]");
+            plot->yAxis->setLabel("power [dB]");
             LogMsg("DPM changes to dB-y");
         }
 
@@ -1218,7 +1234,7 @@ void MainWindow::on_comboBox_yAxis_currentIndexChanged(int index)
             plot->yAxis2->setScaleType(QCPAxis::stLinear);
             plot->graph(1)->clearData();
             plot->graph(1)->addData(x, dB2);
-            plot->yAxis2->setLabel("power [dBm]");
+            plot->yAxis2->setLabel("power [dB]");
             LogMsg("DMM changes to dB-y");
         }
 
@@ -1390,4 +1406,56 @@ void MainWindow::on_actionSave_2_D_plot_triggered()
     }else{
         LogMsg("Save Failed.");
     }
+}
+
+void MainWindow::on_checkBox_Normalize_clicked(bool checked)
+{
+    if( programMode != 3 ) return;
+    if(checked){
+        if( hasPowerMeter ) {
+            colorScale->axis()->setLabel("DPM power / input power");
+            plot->yAxis->setLabel("DPM power / input power");
+            plot->graph(0)->setName("DPM normalized");
+        }
+        if( hasDMM ) {
+            colorScale->axis()->setLabel("DMM power / input power [mV/mW]");
+            plot->yAxis->setLabel("DMM power / input power [mV/mW]");
+            plot->graph(0)->setName("DMM normalized");
+        }
+
+    }else{
+        if( hasPowerMeter ) {
+            colorScale->axis()->setLabel("DPM power [mW]");
+            plot->yAxis->setLabel("DPM power [mW]");
+            plot->graph(0)->setName("DPM");
+        }
+        if( hasDMM ) {
+            colorScale->axis()->setLabel("DMM power [mV]");
+            plot->yAxis->setLabel("DMM power [mW]");
+            plot->graph(0)->setName("DMM");
+        }
+    }
+
+    plot->replot();
+    auxPlot->replot();
+}
+
+void MainWindow::on_lineEdit_dBm_textChanged(const QString &arg1)
+{
+    if(stopdBm2mW) return;
+    stopmW2dBm = true;
+    double dBm = arg1.toDouble();
+    double mW = pow(10, dBm/10.);
+    ui->lineEdit_mW->setText(QString::number(mW));
+    stopmW2dBm = false;
+}
+
+void MainWindow::on_lineEdit_mW_textChanged(const QString &arg1)
+{
+    if(stopmW2dBm) return;
+    stopdBm2mW = true;
+    double mW = arg1.toDouble();
+    double dBm = 10.* log(mW)/log(10.);
+    ui->lineEdit_dBm->setText(QString::number(dBm));
+    stopdBm2mW = false;
 }
