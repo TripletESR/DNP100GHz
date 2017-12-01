@@ -16,6 +16,11 @@ enum generator_Type{
     HMCT2220
 };
 
+enum multipler{
+    x4 = 4,
+    x6 = 6
+};
+
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
@@ -78,6 +83,8 @@ private slots:
     double mW2dBm(double mW){
         return 10.* log(mW)/log(10.);
     }
+
+    void on_lineEdit_Freq_returnPressed();
 
 private:
     Ui::MainWindow *ui;
