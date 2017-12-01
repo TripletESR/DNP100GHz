@@ -162,7 +162,7 @@
        <item row="4" column="2">
         <widget class="QLabel" name="label_3">
          <property name="text">
-          <string>Stop [MHz]</string>
+          <string>Stop [GHz]</string>
          </property>
          <property name="alignment">
           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -193,7 +193,7 @@
        <item row="1" column="2">
         <widget class="QLabel" name="label_2">
          <property name="text">
-          <string>Start [MHz]</string>
+          <string>Start [GHz]</string>
          </property>
          <property name="alignment">
           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -213,7 +213,7 @@
        <item row="0" column="4">
         <widget class="QLabel" name="label_11">
          <property name="text">
-          <string>Eff. Freq. [MHz]</string>
+          <string>Eff. Freq. [GHz]</string>
          </property>
          <property name="alignment">
           <set>Qt::AlignCenter</set>
@@ -308,7 +308,7 @@
           <item row="0" column="0">
            <widget class="QLabel" name="label_10">
             <property name="text">
-             <string>Set Freq [MHz]</string>
+             <string>Set Freq [GHz]</string>
             </property>
             <property name="alignment">
              <set>Qt::AlignCenter</set>
@@ -464,7 +464,7 @@
        <item row="0" column="5">
         <widget class="QLabel" name="label_5">
          <property name="text">
-          <string>Eff. Freq. / 6 [MHz]</string>
+          <string>Eff. Freq. / 6 [GHz]</string>
          </property>
          <property name="alignment">
           <set>Qt::AlignCenter</set>

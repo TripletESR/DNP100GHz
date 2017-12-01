@@ -45,6 +45,7 @@ private slots:
 
     void on_actionSave_Data_triggered();
     void on_actionSave_plot_triggered();
+    void on_actionSave_2_D_plot_triggered();
 
     void on_pushButton_ReadPower_clicked();
     void on_pushButton_RFOnOff_clicked();
@@ -64,18 +65,19 @@ private slots:
     void on_spinBox_AveragePoints_editingFinished();
 
     void on_lineEdit_PowerStart_textChanged(const QString &arg1);
-
     void on_lineEdit_PowerEnd_textChanged(const QString &arg1);
-
     void on_spinBox_PowerStep_valueChanged(int arg1);
-
-    void on_actionSave_2_D_plot_triggered();
-
     void on_checkBox_Normalize_clicked(bool checked);
 
     void on_lineEdit_dBm_textChanged(const QString &arg1);
-
     void on_lineEdit_mW_textChanged(const QString &arg1);
+
+    double dBm2mW(double dBm){
+        return pow(10, dBm/10.);
+    }
+    double mW2dBm(double mW){
+        return 10.* log(mW)/log(10.);
+    }
 
 private:
     Ui::MainWindow *ui;

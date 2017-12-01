@@ -216,7 +216,7 @@ MainWindow::MainWindow(QWidget *parent) :
     //########################## Set up the plot according to the program mode
 
     if( programMode == 1){
-        plot->xAxis->setLabel("freq. [MHz]");
+        plot->xAxis->setLabel("freq. [GHz]");
 
         plot->addGraph();
         plot->graph(0)->setPen(QPen(Qt::blue)); // for y, DPM
@@ -235,7 +235,7 @@ MainWindow::MainWindow(QWidget *parent) :
     }
 
     if( programMode == 2){
-        plot->xAxis->setLabel("freq. [MHz]");
+        plot->xAxis->setLabel("freq. [GHz]");
         plot->yAxis->setLabel("DPM power [mW]");
         plot->addGraph();
         plot->graph(0)->setPen(QPen(Qt::blue)); // for y, DPM
@@ -265,18 +265,18 @@ MainWindow::MainWindow(QWidget *parent) :
     }
 
     if( programMode == 3 ){
-        plot->xAxis->setLabel("freq. [MHz]");
+        plot->xAxis->setLabel("freq. [GHz]");
         plot->addGraph();
         plot->legend->setVisible(true);
         ui->checkBox_Normalize->setChecked(false);
         on_checkBox_Normalize_clicked(false);
         plot->replot();
 
-        auxPlot->xAxis->setLabel("freq. [MHz]");
+        auxPlot->xAxis->setLabel("freq. [GHz]");
         auxPlot->yAxis->setLabel("Input power [dBm]");
         colorMap = new QCPColorMap(auxPlot->xAxis, auxPlot->yAxis);
 
-        colorMap->data()->setRange(QCPRange(3900*24, 4000*24), QCPRange(-50,10));// set the x, y axis range
+        colorMap->data()->setRange(QCPRange(3.9*24, 4.0*24), QCPRange(-50,10));// set the x, y axis range
         colorMap->rescaleAxes();
 
         colorScale = new QCPColorScale(auxPlot);
@@ -296,19 +296,19 @@ MainWindow::MainWindow(QWidget *parent) :
         ui->checkBox_Normalize->setEnabled(true);
     }
 
-    ui->lineEdit_Start->setText("3900");
-    ui->lineEdit_Stop->setText("4000");
+    ui->lineEdit_Start->setText("3.9");
+    ui->lineEdit_Stop->setText("4.0");
     ui->spinBox_Points->setValue(101);
     ui->spinBox_Dwell->setValue(400);
     ui->lineEdit_StepSize->setText("1 MHz");
     ui->lineEdit_RunTime->setText("~20.100 sec");
     ui->lineEdit_Multiplier->setText("24");
-    ui->lineEdit_EffStart->setText(QString::number(3900*24));
-    ui->lineEdit_EffStop->setText(QString::number(4000*24));
-    ui->lineEdit_EffStart_d6->setText(QString::number(3900*24/6));
-    ui->lineEdit_EffStop_d6->setText(QString::number(4000*24/6));
-    ui->lineEdit_Freq->setText("4000");
-    ui->lineEdit_EffFreq->setText(QString::number(4000*24));
+    ui->lineEdit_EffStart->setText(QString::number(3.900*24));
+    ui->lineEdit_EffStop->setText(QString::number(4.000*24));
+    ui->lineEdit_EffStart_d6->setText(QString::number(3.900*24/6));
+    ui->lineEdit_EffStop_d6->setText(QString::number(4.000*24/6));
+    ui->lineEdit_Freq->setText("4.000");
+    ui->lineEdit_EffFreq->setText(QString::number(4.000*24));
 
     ui->comboBox_yAxis->addItem("Linear y");
     ui->comboBox_yAxis->addItem("Log y");
@@ -322,7 +322,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->spinBox_Average->setEnabled(false);
 
     if(programMode == 3){
-        colorMap->data()->setKeyRange(QCPRange( 3900*24, 4000*24));
+        colorMap->data()->setKeyRange(QCPRange( 3.900*24, 4.000*24));
         colorMap->data()->setSize(101, 101); // this is just the grid size.
         colorMap->rescaleAxes();
         auxPlot->replot();
@@ -422,11 +422,11 @@ void MainWindow::on_pushButton_Sweep_clicked()
                         for( int i = 1 ; i <= points; i ++){
                             if(!sweepOnOff) break;
                             double freq = start + (i-1) * step;
-                            qDebug() << "(" << i << "," << j << ") = (" <<  freq << " MHz," << power <<" dBm)";
+                            qDebug() << "(" << i << "," << j << ") = (" <<  freq << " GHz," << power <<" dBm)";
 
                             // set generator freqeuncey
                             QString input;
-                            input.sprintf("FREQ %fMHz", freq*multi/6);
+                            input.sprintf("FREQ %fGHz", freq*multi/6);
                             write2Generator(input);
 
                             //wait for waittime, for the powereter to measure the freq.
@@ -442,11 +442,11 @@ void MainWindow::on_pushButton_Sweep_clicked()
                     for( int i = 1 ; i <= points; i ++){
                         if(!sweepOnOff) break;
                         double freq = start + (i-1) * step;
-                        qDebug() <<  i << "," <<  freq << " MHz" ;
+                        qDebug() <<  i << "," <<  freq << " GHz" ;
 
                         // set generator freqeuncey
                         QString input;
-                        input.sprintf("FREQ:CW %fMHz", freq);
+                        input.sprintf("FREQ:CW %fGHz", freq);
                         write2Generator(input);
 
                         //wait for waittime, for the powereter to measure the freq.
@@ -460,16 +460,16 @@ void MainWindow::on_pushButton_Sweep_clicked()
                     return;
                 }
 
-            }else{
+            }else{ // programMode == 1, 2
                 for( int i = 1 ; i <= points; i ++){
                     if(!sweepOnOff) break;
 
                     double freq = start + (i-1) * step;
-                    qDebug() << i << "," <<  freq << "MHz";
+                    qDebug() << i << "," <<  freq << "GHz";
 
                     // set generator freqeuncey
                     QString input;
-                    input.sprintf("FREQ:CW %fMHz", freq*multi/6);
+                    input.sprintf("FREQ:CW %fGHz", freq*multi/6);
                     write2Generator(input);
                     x.push_back(freq * multi);
 
@@ -478,7 +478,7 @@ void MainWindow::on_pushButton_Sweep_clicked()
                     if( hasPowerMeter ){
                         QString freqCmd = "sens:freq ";
                         QString freqStr;
-                        freqStr.sprintf("%6.2f",freq/1000.*24); // in GHz, also with 4 and 6 mulipiler.
+                        freqStr.sprintf("%6.2f",freq*24); // in GHz, also with 4 and 6 mulipiler.
                         freqStr.remove(" ");
                         freqCmd = freqCmd + freqStr;
                         //qDebug() << "-----------" << freqCmd;
@@ -618,11 +618,11 @@ void MainWindow::on_pushButton_Sweep_clicked()
                 for( int i = 1 ; i <= points; i ++){
 
                     double freq = start + (i-1) * step;
-                    qDebug() << "(" << i << "," << j << ") = (" <<  freq << " MHz," << power <<" dBm)";
+                    qDebug() << "(" << i << "," << j << ") = (" <<  freq << " GHz," << power <<" dBm)";
 
                     // set generator freqeuncey
                     QString input;
-                    input.sprintf("FREQ:CW %fMHz", freq * multi / 6);
+                    input.sprintf("FREQ:CW %fGHz", freq * multi / 6);
                     write2Generator(input);
 
                     x.push_back(freq * multi);
@@ -640,7 +640,7 @@ void MainWindow::on_pushButton_Sweep_clicked()
 
                         QString freqCmd = "sens:freq ";
                         QString freqStr;
-                        freqStr.sprintf("%6.2f",freq/1000.*24); // in GHz, also with 4 and 6 mulipiler, the DPM use GHz
+                        freqStr.sprintf("%6.2f",freq*24.); // in GHz, also with 4 and 6 mulipiler, the DPM use GHz
                         freqStr.remove(" ");
                         freqCmd = freqCmd + freqStr;
                         //qDebug() << "-----------" << freqCmd;
@@ -823,16 +823,8 @@ void MainWindow::controlOnOFF(bool IO)
     ui->lineEdit_Stop->setEnabled(IO);
 
     ui->lineEdit_Multiplier->setEnabled(IO);
-    //ui->lineEdit_EffStart->setEnabled(IO);
-    //ui->lineEdit_EffStop->setEnabled(IO);
 
     ui->lineEdit_Freq->setEnabled(IO);
-    //ui->lineEdit_EffFreq->setEnabled(IO);
-    //ui->pushButton_RFOnOff->setEnabled(IO);
-    //ui->pushButton_Sweep->setEnabled(IO);
-
-    //ui->spinBox_AveragePoints->setEnabled(IO);
-    //ui->pushButton_GetNoPoint->setEnabled(IO);
 
     if(generatorType == smallGenerator){
         ui->doubleSpinBox->setEnabled(IO);
@@ -855,7 +847,7 @@ void MainWindow::on_spinBox_Points_valueChanged(int arg1)
 {
     double start = ui->lineEdit_Start->text().toDouble();
     double stop = ui->lineEdit_Stop->text().toDouble();
-    double step = (stop-start) / (arg1-1);
+    double step = (stop-start) / (arg1-1) * 1000.; // in MHz
     double waitTime = ui->spinBox_Dwell->value();
     int powerStep = 1;
     if( generatorType== HMCT2220) powerStep = ui->spinBox_PowerStep->value();
@@ -881,8 +873,8 @@ void MainWindow::on_lineEdit_Start_textChanged(const QString &arg1)
     double stop = ui->lineEdit_Stop->text().toDouble();
     int points = ui->spinBox_Points->value();
     double range = (stop - arg1.toDouble());
-    double step = range/(points-1);
-    ui->lineEdit_StepSize->setText(QString::number(step) + " MHz");
+    double step = range/(points-1) * 1000.; // in MHz
+    ui->lineEdit_StepSize->setText(QString::number(step) + "MHz");
 
     plot->xAxis->setRange((arg1.toDouble() - range*0.1)*multi, (stop +  range*0.1)*multi);
     plot->replot();
@@ -901,7 +893,7 @@ void MainWindow::on_lineEdit_Stop_textChanged(const QString &arg1)
     double start = ui->lineEdit_Start->text().toDouble();
     int points = ui->spinBox_Points->value();
     double range = (arg1.toDouble() - start);
-    double step = range/(points-1);
+    double step = range/(points-1) * 1000;
     ui->lineEdit_StepSize->setText(QString::number(step) + " MHz");
 
     int multi = ui->lineEdit_Multiplier->text().toInt();
@@ -973,51 +965,51 @@ void MainWindow::on_actionSave_Data_triggered()
     QTextStream stream(&outfile);
     QString lineout;
 
-    lineout.sprintf("###%s", date.toString("yyyy-MM-dd HH:mm:ss\n").toStdString().c_str());
-    stream << lineout;
+    lineout.sprintf("###%s", date.toString("yyyy-MM-dd HH:mm:ss\n").toStdString().c_str()); stream << lineout;
+    lineout.sprintf("###Program mode %d", programMode); stream << lineout;
     if( programMode !=3 ){
-        lineout.sprintf("###number of data %d\n", size);
-        stream << lineout;
+        lineout.sprintf("###number of data = %d\n", size); stream << lineout;
         if(programMode == 2){
-            lineout.sprintf("%10s\t%10s\t%10s\n", "freq.[MHz]", "DPM [mW]", "DMM [mV]");
+            lineout.sprintf("%10s\t%10s\t%10s\n", "freq.[GHz]", "DPM [mW]", "DMM [mV]"); stream << lineout;
         }
         if( programMode == 1){
             if( hasPowerMeter && !hasDMM ){
-                lineout.sprintf("%10s\t%10s\n", "freq.[MHz]", "DPM [mW]");
+                lineout.sprintf("###Using Digital Power Meter."); stream << lineout;
+                lineout.sprintf("%10s\t%10s\n", "freq.[GHz]", "DPM [mW]"); stream << lineout;
             }
             if( !hasPowerMeter && hasDMM ){
-                lineout.sprintf("%10s\t%10s\n", "freq.[MHz]", "DMM [mV]");
+                lineout.sprintf("###Using Digital Multi-Meter."); stream << lineout;
+                lineout.sprintf("%10s\t%10s\n", "freq.[GHz]", "DMM [mV]"); stream << lineout;
             }
         }
-        stream << lineout;
+
 
         for( int i = 0; i < size; i++){
             if( programMode == 2){
-                lineout.sprintf("%10f\t%10f\t%10f\n", x[i], y[i], y2[i]);
+                lineout.sprintf("%10f\t%10f\t%10f\n", x[i], y[i], y2[i]); stream << lineout;
             }else{
-                lineout.sprintf("%10f\t%10f\n", x[i], y[i]);
+                lineout.sprintf("%10f\t%10f\n", x[i], y[i]); stream << lineout;
             }
-            stream << lineout;
         }
 
     }else{
-        lineout.sprintf("### number of freq [MHz]%d\n", size); stream<< lineout;
-        lineout.sprintf("### number of power [dBm] %d\n", y2.size()); stream<< lineout;
+        lineout.sprintf("### number of freq [GHz] = %d\n", size); stream<< lineout;
+        lineout.sprintf("### number of power [dBm] = %d\n", y2.size()); stream<< lineout;
 
         //first line
-        lineout.sprintf("#%13s,", "freq[MHz]"); stream << lineout;
+        lineout.sprintf("#%13s,", "freq[GHz]"); stream << lineout;
         for(int i = 0; i < size - 1; i++){
-            lineout.sprintf("%10f, ", x[i]); stream << lineout;
+            lineout.sprintf("%10.f, ", x[i]); stream << lineout;
         }
-        lineout.sprintf("%10f\n", x[size-1]); stream << lineout;
+        lineout.sprintf("%10.f\n", x[size-1]); stream << lineout;
 
         //date line
         for(int j = 0; j < y2.size()-1; j++){
             lineout.sprintf(" Power=%7.3f,", y2[j]); stream << lineout;
             for(int i = 0; i < size -1; i++){
-                lineout.sprintf("%10f, ", z[j][i]); stream << lineout;
+                lineout.sprintf("%10.f, ", z[j][i]); stream << lineout;
             }
-            lineout.sprintf("%10f\n", z[j][size-1]); stream << lineout;
+            lineout.sprintf("%10.f\n", z[j][size-1]); stream << lineout;
         }
     }
 
@@ -1110,10 +1102,10 @@ void MainWindow::on_pushButton_RFOnOff_clicked()
         if(generatorType == smallGenerator) {
             QString inputStr;
             write2Generator(inputStr);
-            inputStr.sprintf("FREQ:CW %fMHz", freq);
+            inputStr.sprintf("FREQ:CW %fGHz", freq);
         }
         if(generatorType == HMCT2220){
-            write2Generator("FREQ " + QString::number(freq* multi/6.)+"MHz");
+            write2Generator("FREQ " + QString::number(freq* multi/6.)+" GHz");
         }
         write2Generator("OUTP:STAT ON");
         controlOnOFF(false);
@@ -1123,7 +1115,7 @@ void MainWindow::on_pushButton_RFOnOff_clicked()
         if(hasPowerMeter){
             QString freqCmd = "sens:freq ";
             QString freqStr;
-            freqStr.sprintf("%6.2f",freq/1000.*24); // in GHz, also with 4 and 6 mulipiler.
+            freqStr.sprintf("%6.2f",freq*24.); // in GHz, also with 4 and 6 mulipiler.
             freqStr.remove(" ");
             freqCmd = freqCmd + freqStr;
             //qDebug() << "-----------" << freqCmd;
@@ -1168,7 +1160,7 @@ void MainWindow::on_lineEdit_Freq_textChanged(const QString &arg1)
 
 void MainWindow::on_comboBox_yAxis_currentIndexChanged(int index)
 {
-    qDebug() << "index : " << index ;
+    qDebug() << "index : " << index << " ," << ui->comboBox_yAxis->itemText(index) ;
 
     if( x.isEmpty()) return;
 
@@ -1305,7 +1297,7 @@ void MainWindow::on_horizontalSlider_B_valueChanged(int value)
 
 void MainWindow::checkPowerMeterFreq(double freq)
 {
-    double DPMfreq = freq *24 /1000.; // in GHz with 24x multiplier
+    double DPMfreq = freq * 24 ; // in GHz with 4x + 6x multiplier
     if( DPMfreq < 75 || DPMfreq > 110){
         LogMsg("##################################################", Qt::red);
         LogMsg("The freq in the DPM : " + QString::number(DPMfreq) + " GHz.", Qt::red);
@@ -1445,7 +1437,7 @@ void MainWindow::on_lineEdit_dBm_textChanged(const QString &arg1)
     if(stopdBm2mW) return;
     stopmW2dBm = true;
     double dBm = arg1.toDouble();
-    double mW = pow(10, dBm/10.);
+    double mW = dBm2mW(dBm);
     ui->lineEdit_mW->setText(QString::number(mW));
     stopmW2dBm = false;
 }
@@ -1455,7 +1447,7 @@ void MainWindow::on_lineEdit_mW_textChanged(const QString &arg1)
     if(stopmW2dBm) return;
     stopdBm2mW = true;
     double mW = arg1.toDouble();
-    double dBm = 10.* log(mW)/log(10.);
+    double dBm = mW2dBm(mW);
     ui->lineEdit_dBm->setText(QString::number(dBm));
     stopdBm2mW = false;
 }
