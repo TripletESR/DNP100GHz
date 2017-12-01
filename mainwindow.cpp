@@ -45,7 +45,6 @@ MainWindow::MainWindow(QWidget *parent) :
         LogMsg("VISA Error : " + powerMeter->scpi_Msg, Qt::red);
         hasPowerMeter = false;
 
-        ui->pushButton_ReadPower->setEnabled(false);
         ui->spinBox_AveragePoints->setEnabled(false);
         ui->pushButton_GetNoPoint->setEnabled(false);
     }
@@ -64,6 +63,9 @@ MainWindow::MainWindow(QWidget *parent) :
         LogMsg("VISA Error : " + DMM->scpi_Msg, Qt::red);
         hasDMM = false;
 
+    }
+
+    if( !hasPowerMeter && !hasDMM){
         ui->pushButton_ReadPower->setEnabled(false);
     }
 
@@ -248,6 +250,7 @@ MainWindow::MainWindow(QWidget *parent) :
         plot->graph(0)->setPen(QPen(Qt::blue)); // for y, power meter
         if( hasPowerMeter ) plot->graph(0)->setName("Power Meter");
         if( hasDMM )        plot->graph(0)->setName("DMM");
+        plot->legend->setVisible(true);
         plot->replot();
 
 
@@ -255,7 +258,7 @@ MainWindow::MainWindow(QWidget *parent) :
         auxPlot->yAxis->setLabel("Power [dBm]");
 
         colorMap = new QCPColorMap(auxPlot->xAxis, auxPlot->yAxis);
-        colorMap->data()->setSize(200, 200); // this is just the grid size.
+
         colorMap->data()->setRange(QCPRange(3900*24, 4000*24), QCPRange(-50,10));// set the x, y axis range
         colorMap->rescaleAxes();
 
@@ -279,6 +282,8 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->lineEdit_Multiplier->setText("24");
     ui->lineEdit_EffStart->setText(QString::number(3900*24));
     ui->lineEdit_EffStop->setText(QString::number(4000*24));
+    ui->lineEdit_EffStart_d6->setText(QString::number(3900*24/6));
+    ui->lineEdit_EffStop_d6->setText(QString::number(4000*24/6));
     ui->lineEdit_Freq->setText("4000");
     ui->lineEdit_EffFreq->setText(QString::number(4000*24));
 
@@ -292,6 +297,13 @@ MainWindow::MainWindow(QWidget *parent) :
 
     ui->comboBox_yAxis->setEnabled(false);
     ui->spinBox_Average->setEnabled(false);
+
+    if(programMode == 3){
+        colorMap->data()->setKeyRange(QCPRange( 3900*24, 4000*24));
+        colorMap->data()->setSize(101, 101); // this is just the grid size.
+        colorMap->rescaleAxes();
+        auxPlot->replot();
+    }
 
 }
 
@@ -333,9 +345,9 @@ void MainWindow::on_pushButton_Sweep_clicked()
 {
     sweepOnOff = !sweepOnOff;
 
-    LogMsg("======= Sweeping Start! ", Qt::blue);
 
     if( sweepOnOff ){
+        LogMsg("======= Sweeping Start! ", Qt::blue);
         controlOnOFF(false);
         ui->pushButton_ReadPower->setEnabled(false);
         ui->pushButton_RFOnOff->setEnabled(false);
@@ -345,7 +357,7 @@ void MainWindow::on_pushButton_Sweep_clicked()
         ui->pushButton_GetNoPoint->setEnabled(false);
 
         ui->pushButton_Sweep->setStyleSheet("background-color: rgb(0,255,0)");
-        write2Generator("*BUZZER OFF");
+        if(generatorType == smallGenerator) write2Generator("*BUZZER OFF");
 
         write2Generator("OUTP:STAT ON"); // switch on RF
 
@@ -369,22 +381,43 @@ void MainWindow::on_pushButton_Sweep_clicked()
 
         if(programMode != 3){
             if( programMode == 4 ){ // only sweep
-                double powerStart = ui->lineEdit_PowerStart->text().toDouble();
-                double powerEnd = ui->lineEdit_PowerEnd->text().toDouble();
-                int powerStep = ui->spinBox_PowerStep->value();
-                double powerStepSize = (powerEnd-powerStart)/(powerStep-1);
+                if(generatorType == HMCT2220){
+                    double powerStart = ui->lineEdit_PowerStart->text().toDouble();
+                    double powerEnd = ui->lineEdit_PowerEnd->text().toDouble();
+                    int powerStep = ui->spinBox_PowerStep->value();
+                    double powerStepSize = (powerEnd-powerStart)/(powerStep-1);
 
 
-                for( int j = 1; j < powerStep; j++){
-                    if(!sweepOnOff) break;
-                    double power = powerStart + (j-1) * powerStepSize;
-                    //set HMC-T2220 power
-                    write2Generator("Power " + QString::number(power));
+                    for( int j = 1; j < powerStep; j++){
+                        if(!sweepOnOff) break;
+                        double power = powerStart + (j-1) * powerStepSize;
+                        //set HMC-T2220 power
+                        write2Generator("Power " + QString::number(power));
 
+                        for( int i = 1 ; i <= points; i ++){
+                            if(!sweepOnOff) break;
+                            double freq = start + (i-1) * step;
+                            qDebug() << "(" << i << "," << j << ") = (" <<  freq << " MHz," << power <<" dBm)";
+
+                            // set generator freqeuncey
+                            QString input;
+                            input.sprintf("FREQ %fMHz", freq*multi/6);
+                            write2Generator(input);
+
+                            //wait for waittime, for the powereter to measure the freq.
+                            QEventLoop eventLoop;
+                            QTimer::singleShot(waitTime, &eventLoop, SLOT(quit()));
+                            eventLoop.exec();
+
+
+                        } // end of for-loop for freqeuncy
+                    } // end of for-loop for power
+
+                }else if(generatorType == smallGenerator){
                     for( int i = 1 ; i <= points; i ++){
                         if(!sweepOnOff) break;
                         double freq = start + (i-1) * step;
-                        qDebug() << "(" << i << "," << j << ") = (" <<  freq << " MHz," << power <<" dBm)";
+                        qDebug() <<  i << "," <<  freq << " MHz" ;
 
                         // set generator freqeuncey
                         QString input;
@@ -398,18 +431,20 @@ void MainWindow::on_pushButton_Sweep_clicked()
 
 
                     } // end of for-loop for freqeuncy
-                } // end of for-loop for power
+                }else{
+                    return;
+                }
 
             }else{
                 for( int i = 1 ; i <= points; i ++){
                     if(!sweepOnOff) break;
 
                     double freq = start + (i-1) * step;
-                    qDebug() << i << "," <<  freq;
+                    qDebug() << i << "," <<  freq << "MHz";
 
                     // set generator freqeuncey
                     QString input;
-                    input.sprintf("FREQ:CW %fMHz", freq);
+                    input.sprintf("FREQ:CW %fMHz", freq*multi/6);
                     write2Generator(input);
                     x.push_back(freq * multi);
 
@@ -544,6 +579,7 @@ void MainWindow::on_pushButton_Sweep_clicked()
             if(z != NULL) delete z;
             z = new QVector<double> [powerStep];
 
+            colorMap->data()->setSize(points, powerStep); // this is just the grid size.
 
             for( int j = 1; j < powerStep; j++){
                 if(!sweepOnOff) break;
@@ -562,7 +598,7 @@ void MainWindow::on_pushButton_Sweep_clicked()
 
                     // set generator freqeuncey
                     QString input;
-                    input.sprintf("FREQ:CW %fMHz", freq);
+                    input.sprintf("FREQ:CW %fMHz", freq * multi / 6);
                     write2Generator(input);
 
                     x.push_back(freq * multi);
@@ -572,11 +608,11 @@ void MainWindow::on_pushButton_Sweep_clicked()
                     if( hasPowerMeter ){
                         if(!sweepOnOff) break;
 
-                        plot->graph(0)->setName("Power Meter, (" + QString::number(freq) + " MHz," + QString::number(power) + " dBm)");
+                        plot->graph(0)->setName("Power Meter, " + QString::number(power) + " dBm");
 
                         QString freqCmd = "sens:freq ";
                         QString freqStr;
-                        freqStr.sprintf("%6.2f",freq/1000.*24); // in GHz, also with 4 and 6 mulipiler.
+                        freqStr.sprintf("%6.2f",freq/1000.*24); // in GHz, also with 4 and 6 mulipiler, the Power Meter use GHz
                         freqStr.remove(" ");
                         freqCmd = freqCmd + freqStr;
                         //qDebug() << "-----------" << freqCmd;
@@ -608,7 +644,7 @@ void MainWindow::on_pushButton_Sweep_clicked()
 
                     if( hasDMM ){
 
-                        plot->graph(0)->setName("DMM, (" + QString::number(freq) + " MHz," + QString::number(power) + " dBm)");
+                        plot->graph(0)->setName("DMM, " +  QString::number(power) + " dBm");
 
                         sprintf(DMM->cmd, ":READ?\n");
                         readingDMM = DMM->Ask(DMM->cmd).toDouble();
@@ -648,12 +684,13 @@ void MainWindow::on_pushButton_Sweep_clicked()
                     plot->yAxis->rescale();
                     plot->replot();
 
-                    colorMap->data()->setData(freq, power, reading);
+                    colorMap->data()->setData(freq*multi, power, reading);
                     colorMap->rescaleDataRange();
                     auxPlot->replot();
 
 
                 } // end of for-loop for freqeuncy
+               // qDebug() << z[j-1];
             } // end of for-loop for power
 
         }
@@ -711,7 +748,8 @@ void MainWindow::findSeriesPortDevices()
             generatorCount ++;
         }
 
-        if(info.serialNumber() == "001396" && info.manufacturer() == "Microsoft" ){
+        if(info.serialNumber() == "001396" && info.manufacturer() == "Hittite" ){
+            //if(info.serialNumber() == "001396" && info.manufacturer() == "Microsoft" ){
             generatorPortName = info.portName();
             generatorType = HMCT2220;
             generatorCount ++;
@@ -784,7 +822,9 @@ void MainWindow::on_spinBox_Points_valueChanged(int arg1)
     double stop = ui->lineEdit_Stop->text().toDouble();
     double step = (stop-start) / (arg1-1);
     double waitTime = ui->spinBox_Dwell->value();
-    double runTime = arg1 * waitTime / 1000.;
+    int powerStep = 1;
+    if( generatorType== HMCT2220) powerStep = ui->spinBox_PowerStep->value();
+    double runTime = powerStep * arg1 * waitTime / 1000.;
     ui->lineEdit_StepSize->setText(QString::number(step) + " MHz");
     ui->lineEdit_RunTime->setText(QString::number(runTime) + " sec");
 }
@@ -801,6 +841,7 @@ void MainWindow::on_lineEdit_Start_textChanged(const QString &arg1)
     int multi = ui->lineEdit_Multiplier->text().toInt();
     double effStart = multi * arg1.toDouble();
     ui->lineEdit_EffStart->setText(QString::number(effStart));
+    ui->lineEdit_EffStart_d6->setText(QString::number(effStart/6));
 
     double stop = ui->lineEdit_Stop->text().toDouble();
     int points = ui->spinBox_Points->value();
@@ -810,6 +851,12 @@ void MainWindow::on_lineEdit_Start_textChanged(const QString &arg1)
 
     plot->xAxis->setRange((arg1.toDouble() - range*0.1)*multi, (stop +  range*0.1)*multi);
     plot->replot();
+
+    if(programMode == 3){
+        colorMap->data()->setKeyRange(QCPRange( effStart, stop * multi));
+        colorMap->rescaleAxes();
+        auxPlot->replot();
+    }
 
     checkPowerMeterFreq(arg1.toDouble());
 }
@@ -825,9 +872,18 @@ void MainWindow::on_lineEdit_Stop_textChanged(const QString &arg1)
     int multi = ui->lineEdit_Multiplier->text().toInt();
     double effStop = multi * arg1.toDouble();
     ui->lineEdit_EffStop->setText(QString::number(effStop));
+    ui->lineEdit_EffStop_d6->setText(QString::number(effStop/6));
 
     plot->xAxis->setRange((start - range*0.1)*multi, (arg1.toDouble()+  range*0.1)*multi);
     plot->replot();
+
+    if(programMode == 3){
+        colorMap->data()->setKeyRange(QCPRange( start*multi, effStop));
+        colorMap->rescaleAxes();
+        auxPlot->replot();
+    }
+
+    checkPowerMeterFreq(arg1.toDouble());
 }
 
 void MainWindow::on_doubleSpinBox_Power_valueChanged(double arg1)
@@ -1012,28 +1068,37 @@ void MainWindow::on_pushButton_RFOnOff_clicked()
     rfOnOff = !rfOnOff;
 
     if(rfOnOff){
+        ui->pushButton_Sweep->setEnabled(false);
         ui->pushButton_RFOnOff->setStyleSheet("background-color: rgb(0,255,0)");
         double freq = ui->lineEdit_Freq->text().toDouble();
-        QString inputStr;
-        inputStr.sprintf("FREQ:CW %fMHz", freq);
-        write2Generator(inputStr);
+        double multi = ui->lineEdit_Multiplier->text().toDouble();
+        if(generatorType == smallGenerator) {
+            QString inputStr;
+            write2Generator(inputStr);
+            inputStr.sprintf("FREQ:CW %fMHz", freq);
+        }
+        if(generatorType == HMCT2220){
+            write2Generator("FREQ " + QString::number(freq* multi/6.)+"MHz");
+        }
         write2Generator("OUTP:STAT ON");
         controlOnOFF(false);
 
         //Set power meter freq;
-        QString freqCmd = "sens:freq ";
-        QString freqStr;
-        freqStr.sprintf("%6.2f",freq/1000.*24); // in GHz, also with 4 and 6 mulipiler.
-        freqStr.remove(" ");
-        freqCmd = freqCmd + freqStr;
-        //qDebug() << "-----------" << freqCmd;
-        sprintf(powerMeter->cmd, "%s\n", freqCmd.toStdString().c_str());
-        powerMeter->SendCmd(powerMeter->cmd);
-
+        if(hasPowerMeter){
+            QString freqCmd = "sens:freq ";
+            QString freqStr;
+            freqStr.sprintf("%6.2f",freq/1000.*24); // in GHz, also with 4 and 6 mulipiler.
+            freqStr.remove(" ");
+            freqCmd = freqCmd + freqStr;
+            //qDebug() << "-----------" << freqCmd;
+            sprintf(powerMeter->cmd, "%s\n", freqCmd.toStdString().c_str());
+            powerMeter->SendCmd(powerMeter->cmd);
+        }
     }else{
         ui->pushButton_RFOnOff->setStyleSheet("");
         write2Generator("OUTP:STAT OFF");
         controlOnOFF(true);
+        ui->pushButton_Sweep->setEnabled(true);
     }
 
 }
@@ -1246,7 +1311,7 @@ void MainWindow::on_lineEdit_PowerEnd_textChanged(const QString &arg1)
     ui->lineEdit_PowerStepSize->setText(QString::number(stepSize) + " dBm");
 
     if(programMode == 3){
-        colorMap->data()->setKeyRange(QCPRange( arg1.toDouble(), start ));
+        colorMap->data()->setValueRange(QCPRange( arg1.toDouble(), start ));
         colorMap->rescaleAxes();
         auxPlot->replot();
     }
@@ -1259,6 +1324,12 @@ void MainWindow::on_spinBox_PowerStep_valueChanged(int arg1)
 
     double stepSize = (end-start)/(arg1-1);
     ui->lineEdit_PowerStepSize->setText(QString::number(stepSize) + " dBm");
+
+    double waitTime = ui->spinBox_Dwell->value();
+    int step = ui->spinBox_Points->value();
+    double runTime = step * arg1 * waitTime / 1000.;
+
+    ui->lineEdit_RunTime->setText(QString::number(runTime) + " sec");
 }
 
 void MainWindow::on_actionSave_2_D_plot_triggered()
