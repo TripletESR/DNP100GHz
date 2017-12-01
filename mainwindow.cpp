@@ -296,6 +296,10 @@ MainWindow::MainWindow(QWidget *parent) :
         ui->checkBox_Normalize->setEnabled(true);
     }
 
+    ui->verticalSlider_power->setEnabled(false);
+    ui->verticalSlider_power->setMaximum(1);
+    ui->verticalSlider_power->setMinimum(1);
+
     ui->lineEdit_Start->setText("3.9");
     ui->lineEdit_Stop->setText("4.0");
     ui->spinBox_Points->setValue(101);
@@ -382,6 +386,7 @@ void MainWindow::on_pushButton_Sweep_clicked()
         ui->spinBox_Average->setEnabled(false);
         ui->spinBox_AveragePoints->setEnabled(false);
         ui->pushButton_GetNoPoint->setEnabled(false);
+        ui->verticalSlider_power->setEnabled(false);
 
         ui->pushButton_Sweep->setStyleSheet("background-color: rgb(0,255,0)");
         if(generatorType == smallGenerator) write2Generator("*BUZZER OFF");
@@ -614,7 +619,7 @@ void MainWindow::on_pushButton_Sweep_clicked()
 
             colorMap->data()->setSize(points, powerStep); // this is just the grid size.
 
-            for( int j = 1; j < powerStep; j++){
+            for( int j = 1; j <= powerStep; j++){
                 if(!sweepOnOff) break;
                 double power = powerStart + (j-1) * powerStepSize;
                 y2.push_back(power);
@@ -695,7 +700,7 @@ void MainWindow::on_pushButton_Sweep_clicked()
                         eventLoop.exec();
                     }
 
-                    double reading;
+                    double reading = 0;
                     double normFactor = 1;
                     if( ui->checkBox_Normalize->isChecked()) {
                         normFactor = pow(10, power/10.);  // in mW
@@ -737,6 +742,12 @@ void MainWindow::on_pushButton_Sweep_clicked()
                // qDebug() << z[j-1];
             } // end of for-loop for power
 
+        }
+
+        if(programMode == 3){
+            ui->verticalSlider_power->setMaximum(y2.size());
+            ui->verticalSlider_power->setValue(y2.size());
+            ui->verticalSlider_power->setEnabled(true);
         }
 
         if( generatorType == smallGenerator){
@@ -1474,4 +1485,30 @@ void MainWindow::on_lineEdit_Freq_returnPressed()
     if( generatorType == HMCT2220){
         write2Generator("FREQ " + QString::number(freq* 1000* multi/x6)+"MHz");
     }
+}
+
+void MainWindow::on_verticalSlider_power_valueChanged(int value)
+{
+    if( !ui->verticalSlider_power->isEnabled() ) return;
+    if( x.isEmpty()) {
+        LogMsg("no data" , Qt::red);
+        return;
+    }
+    if( y2.size() != z->size()) {
+        LogMsg("data crrupted" , Qt::red);
+        return;
+    }
+
+    // fill y with z[value-1]
+    y.clear();
+    for(int i = 0; i < x.size() ; i++){
+        y.push_back(z[value-1][i]);
+    }
+
+    // plotgraph
+    plot->graph(0)->clearData();
+    plot->graph(0)->setData(x,y);
+    plot->yAxis->rescale();
+    plot->replot();
+
 }

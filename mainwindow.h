@@ -86,6 +86,8 @@ private slots:
 
     void on_lineEdit_Freq_returnPressed();
 
+    void on_verticalSlider_power_valueChanged(int value);
+
 private:
     Ui::MainWindow *ui;
 

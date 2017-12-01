@@ -14,9 +14,64 @@
    <string>DNP 100GHz -- Power Meter</string>
   </property>
   <widget class="QWidget" name="centralWidget">
-   <layout class="QGridLayout" name="gridLayout_3" rowstretch="1,1,3,1,2" columnstretch="1,1,1,1,1">
+   <layout class="QGridLayout" name="gridLayout_3" rowstretch="1,1,3,1,2" columnstretch="1,1,1,1,1,0">
+    <item row="3" column="3">
+     <widget class="QLabel" name="label_12">
+      <property name="text">
+       <string>Average</string>
+      </property>
+      <property name="alignment">
+       <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+      </property>
+     </widget>
+    </item>
+    <item row="3" column="2">
+     <widget class="QComboBox" name="comboBox_yAxis"/>
+    </item>
+    <item row="3" column="4">
+     <widget class="QSpinBox" name="spinBox_Average">
+      <property name="alignment">
+       <set>Qt::AlignCenter</set>
+      </property>
+      <property name="minimum">
+       <number>1</number>
+      </property>
+      <property name="singleStep">
+       <number>2</number>
+      </property>
+     </widget>
+    </item>
     <item row="2" column="2" colspan="3">
      <widget class="QCustomPlot" name="powerPlot" native="true"/>
+    </item>
+    <item row="1" column="0">
+     <widget class="QGroupBox" name="groupBox_4">
+      <property name="title">
+       <string>dBm &lt;-&gt; mW</string>
+      </property>
+      <layout class="QGridLayout" name="gridLayout_7">
+       <item row="2" column="0">
+        <widget class="QLineEdit" name="lineEdit_dBm"/>
+       </item>
+       <item row="3" column="0">
+        <widget class="QLabel" name="label_22">
+         <property name="text">
+          <string>mW :</string>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="0">
+        <widget class="QLineEdit" name="lineEdit_mW"/>
+       </item>
+       <item row="1" column="0">
+        <widget class="QLabel" name="label_8">
+         <property name="text">
+          <string>dBm :</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
     </item>
     <item row="1" column="1">
      <widget class="QGroupBox" name="groupBox_3">
@@ -67,7 +122,92 @@
       </layout>
      </widget>
     </item>
-    <item row="0" column="2" rowspan="2" colspan="3">
+    <item row="0" column="0" colspan="2">
+     <widget class="QGroupBox" name="groupBox">
+      <property name="title">
+       <string>Switch Control</string>
+      </property>
+      <layout class="QGridLayout" name="gridLayout_4" rowstretch="1,1,1,1" columnstretch="1,1">
+       <item row="0" column="0">
+        <widget class="QLabel" name="label_13">
+         <property name="text">
+          <string>A1</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignBottom|Qt::AlignLeading|Qt::AlignLeft</set>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="1">
+        <widget class="QLabel" name="label_14">
+         <property name="text">
+          <string>A2</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignBottom|Qt::AlignRight|Qt::AlignTrailing</set>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="0" colspan="2">
+        <widget class="QSlider" name="horizontalSlider_B">
+         <property name="maximum">
+          <number>1</number>
+         </property>
+         <property name="pageStep">
+          <number>1</number>
+         </property>
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="1">
+        <widget class="QLabel" name="label_16">
+         <property name="text">
+          <string>B2</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignBottom|Qt::AlignRight|Qt::AlignTrailing</set>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="0">
+        <widget class="QLabel" name="label_15">
+         <property name="text">
+          <string>B1</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignBottom|Qt::AlignLeading|Qt::AlignLeft</set>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="0" colspan="2">
+        <widget class="QSlider" name="horizontalSlider_A">
+         <property name="maximum">
+          <number>1</number>
+         </property>
+         <property name="pageStep">
+          <number>1</number>
+         </property>
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+    </item>
+    <item row="2" column="0" colspan="2">
+     <widget class="QCustomPlot" name="comparePlot" native="true"/>
+    </item>
+    <item row="2" column="5">
+     <widget class="QSlider" name="verticalSlider_power">
+      <property name="orientation">
+       <enum>Qt::Vertical</enum>
+      </property>
+     </widget>
+    </item>
+    <item row="0" column="2" rowspan="2" colspan="4">
      <widget class="QGroupBox" name="groupBox_Control">
       <property name="title">
        <string>Generator Control</string>
@@ -507,140 +647,7 @@
       </layout>
      </widget>
     </item>
-    <item row="3" column="3">
-     <widget class="QLabel" name="label_12">
-      <property name="text">
-       <string>Average</string>
-      </property>
-      <property name="alignment">
-       <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-      </property>
-     </widget>
-    </item>
-    <item row="3" column="4">
-     <widget class="QSpinBox" name="spinBox_Average">
-      <property name="alignment">
-       <set>Qt::AlignCenter</set>
-      </property>
-      <property name="minimum">
-       <number>1</number>
-      </property>
-      <property name="singleStep">
-       <number>2</number>
-      </property>
-     </widget>
-    </item>
-    <item row="3" column="2">
-     <widget class="QComboBox" name="comboBox_yAxis"/>
-    </item>
-    <item row="1" column="0">
-     <widget class="QGroupBox" name="groupBox_4">
-      <property name="title">
-       <string>dBm &lt;-&gt; mW</string>
-      </property>
-      <layout class="QGridLayout" name="gridLayout_7">
-       <item row="2" column="0">
-        <widget class="QLineEdit" name="lineEdit_dBm"/>
-       </item>
-       <item row="3" column="0">
-        <widget class="QLabel" name="label_22">
-         <property name="text">
-          <string>mW :</string>
-         </property>
-        </widget>
-       </item>
-       <item row="4" column="0">
-        <widget class="QLineEdit" name="lineEdit_mW"/>
-       </item>
-       <item row="1" column="0">
-        <widget class="QLabel" name="label_8">
-         <property name="text">
-          <string>dBm :</string>
-         </property>
-        </widget>
-       </item>
-      </layout>
-     </widget>
-    </item>
-    <item row="0" column="0" colspan="2">
-     <widget class="QGroupBox" name="groupBox">
-      <property name="title">
-       <string>Switch Control</string>
-      </property>
-      <layout class="QGridLayout" name="gridLayout_4" rowstretch="1,1,1,1" columnstretch="1,1">
-       <item row="0" column="0">
-        <widget class="QLabel" name="label_13">
-         <property name="text">
-          <string>A1</string>
-         </property>
-         <property name="alignment">
-          <set>Qt::AlignBottom|Qt::AlignLeading|Qt::AlignLeft</set>
-         </property>
-        </widget>
-       </item>
-       <item row="0" column="1">
-        <widget class="QLabel" name="label_14">
-         <property name="text">
-          <string>A2</string>
-         </property>
-         <property name="alignment">
-          <set>Qt::AlignBottom|Qt::AlignRight|Qt::AlignTrailing</set>
-         </property>
-        </widget>
-       </item>
-       <item row="3" column="0" colspan="2">
-        <widget class="QSlider" name="horizontalSlider_B">
-         <property name="maximum">
-          <number>1</number>
-         </property>
-         <property name="pageStep">
-          <number>1</number>
-         </property>
-         <property name="orientation">
-          <enum>Qt::Horizontal</enum>
-         </property>
-        </widget>
-       </item>
-       <item row="2" column="1">
-        <widget class="QLabel" name="label_16">
-         <property name="text">
-          <string>B2</string>
-         </property>
-         <property name="alignment">
-          <set>Qt::AlignBottom|Qt::AlignRight|Qt::AlignTrailing</set>
-         </property>
-        </widget>
-       </item>
-       <item row="2" column="0">
-        <widget class="QLabel" name="label_15">
-         <property name="text">
-          <string>B1</string>
-         </property>
-         <property name="alignment">
-          <set>Qt::AlignBottom|Qt::AlignLeading|Qt::AlignLeft</set>
-         </property>
-        </widget>
-       </item>
-       <item row="1" column="0" colspan="2">
-        <widget class="QSlider" name="horizontalSlider_A">
-         <property name="maximum">
-          <number>1</number>
-         </property>
-         <property name="pageStep">
-          <number>1</number>
-         </property>
-         <property name="orientation">
-          <enum>Qt::Horizontal</enum>
-         </property>
-        </widget>
-       </item>
-      </layout>
-     </widget>
-    </item>
-    <item row="2" column="0" colspan="2">
-     <widget class="QCustomPlot" name="comparePlot" native="true"/>
-    </item>
-    <item row="4" column="0" colspan="5">
+    <item row="4" column="0" colspan="6">
      <widget class="QGroupBox" name="groupBox_Log">
       <property name="title">
        <string>Log</string>
