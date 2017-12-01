@@ -14,7 +14,7 @@
    <string>DNP 100GHz -- Power Meter</string>
   </property>
   <widget class="QWidget" name="centralWidget">
-   <layout class="QGridLayout" name="gridLayout_3" rowstretch="1,1,2,1,1" columnstretch="2,1,1,1">
+   <layout class="QGridLayout" name="gridLayout_3" rowstretch="1,1,2,1,2" columnstretch="2,1,1,1">
     <item row="3" column="2">
      <widget class="QLabel" name="label_12">
       <property name="text">

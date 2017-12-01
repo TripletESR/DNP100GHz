@@ -231,12 +231,12 @@ MainWindow::MainWindow(QWidget *parent) :
         plot->graph(1)->setPen(QPen(Qt::red)); // for y2, DMM
         plot->graph(1)->setName("DMM");
         plot->yAxis2->setVisible(true);
-        plot->yAxis2->setLabel("power [a.u.]");
+        plot->yAxis2->setLabel("power [mV]");
         plot->legend->setVisible(true);
         plot->replot();
 
         auxPlot->xAxis->setLabel("Power Meter [mW]");
-        auxPlot->yAxis->setLabel("DMM [a.u.]");
+        auxPlot->yAxis->setLabel("DMM [mV]");
         auxPlot->addGraph();
         auxPlot->graph(0)->setPen(QPen(Qt::blue)); // for y, power meter
 
@@ -485,7 +485,7 @@ void MainWindow::on_pushButton_Sweep_clicked()
 
                     if( hasDMM ){
                         sprintf(DMM->cmd, ":READ?\n");
-                        readingDMM = DMM->Ask(DMM->cmd).toDouble();
+                        readingDMM = DMM->Ask(DMM->cmd).toDouble() * 1000; // to mV
 
                         //wait for waittime, for the powereter to measure the freq.
                         QEventLoop eventLoop;
@@ -647,7 +647,7 @@ void MainWindow::on_pushButton_Sweep_clicked()
                         plot->graph(0)->setName("DMM, " +  QString::number(power) + " dBm");
 
                         sprintf(DMM->cmd, ":READ?\n");
-                        readingDMM = DMM->Ask(DMM->cmd).toDouble();
+                        readingDMM = DMM->Ask(DMM->cmd).toDouble() * 1000;
 
                         //wait for waittime, for the powereter to measure the freq.
                         QEventLoop eventLoop;
@@ -944,14 +944,14 @@ void MainWindow::on_actionSave_Data_triggered()
         lineout.sprintf("###number of data %d\n", size);
         stream << lineout;
         if(programMode == 2){
-            lineout.sprintf("%10s\t%10s\t%10s\n", "freq.[MHz]", "PowerMeter", "DMM");
+            lineout.sprintf("%10s\t%10s\t%10s\n", "freq.[MHz]", "DPM [mW]", "DMM [mV]");
         }
         if( programMode == 1){
             if( hasPowerMeter && !hasDMM ){
-                lineout.sprintf("%10s\t%10s\n", "freq.[MHz]", "Power");
+                lineout.sprintf("%10s\t%10s\n", "freq.[MHz]", "DPM [mW]");
             }
             if( !hasPowerMeter && hasDMM ){
-                lineout.sprintf("%10s\t%10s\n", "freq.[MHz]", "DMM");
+                lineout.sprintf("%10s\t%10s\n", "freq.[MHz]", "DMM [mV]");
             }
         }
         stream << lineout;
