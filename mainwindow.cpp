@@ -30,7 +30,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
     if( powerMeter->status == VI_SUCCESS){
         connect(powerMeter, SIGNAL(SendMsg(QString)), this, SLOT(LogMsg(QString)));
-        LogMsg("Power meter online.");
+        LogMsg("DPM online.");
         hasPowerMeter = true;
 
         ui->pushButton_ReadPower->setEnabled(true);
@@ -40,7 +40,7 @@ MainWindow::MainWindow(QWidget *parent) :
         on_pushButton_GetNoPoint_clicked();
 
     }else{
-        LogMsg("Power meter cannot be found or open.", Qt::red);
+        LogMsg("DPM cannot be found or open.", Qt::red);
         powerMeter->ErrorMassage();
         LogMsg("VISA Error : " + powerMeter->scpi_Msg, Qt::red);
         hasPowerMeter = false;
@@ -176,7 +176,7 @@ MainWindow::MainWindow(QWidget *parent) :
     if( generatorType == smallGenerator && (hasPowerMeter ^ hasDMM)) {
         programMode = 1;
         if(hasPowerMeter){
-            LogMsg("Program mode = 1, simple measurement with Small generator + Power Meter", Qt::blue);
+            LogMsg("Program mode = 1, simple measurement with Small generator + DPM", Qt::blue);
         }
         if(hasDMM){
             LogMsg("Program mode = 1, simple measurement with Small generator + DMM", Qt::blue);
@@ -188,11 +188,11 @@ MainWindow::MainWindow(QWidget *parent) :
         if( generatorCount > 1){
             LogMsg("Two generators are online, using HMC-T2220.", Qt::blue);
         }
-        LogMsg("If you DON'T want to be calibration, please disconnect the Power Meter or DMM.", Qt::blue);
+        LogMsg("If you DON'T want to be calibration, please disconnect the DPM or DMM.", Qt::blue);
     }else if( generatorType == HMCT2220 && (hasPowerMeter ^ hasDMM)) {
         programMode = 3;
         if(hasPowerMeter){
-            LogMsg("Program mode = 3, Measurement with HMC-T2220 + Power Meter", Qt::blue);
+            LogMsg("Program mode = 3, Measurement with HMC-T2220 + DPM", Qt::blue);
         }
         if(hasDMM){
             LogMsg("Program mode = 3, Measurement with HMC-T2220 + DMM", Qt::blue);
@@ -204,17 +204,26 @@ MainWindow::MainWindow(QWidget *parent) :
         ui->spinBox_Dwell->setMinimum(1);
     }
 
+    //test
+    //programMode = 2;
+    //ui->pushButton_Sweep->setEnabled(true);
 
     //########################## Set up the plot according to the program mode
 
     if( programMode == 1){
         plot->xAxis->setLabel("freq. [MHz]");
-        plot->yAxis->setLabel("power [mW]");
-        plot->addGraph();
-        plot->graph(0)->setPen(QPen(Qt::blue)); // for y, power meter
 
-        if( hasPowerMeter ) plot->graph(0)->setName("Power Meter");
-        if( hasDMM )        plot->graph(0)->setName("DMM");
+        plot->addGraph();
+        plot->graph(0)->setPen(QPen(Qt::blue)); // for y, DPM
+
+        if( hasPowerMeter ){
+            plot->graph(0)->setName("DPM");
+            plot->yAxis->setLabel("power [mW]");
+        }
+        if( hasDMM ) {
+            plot->graph(0)->setName("DMM");
+            plot->yAxis->setLabel("power [mV]");
+        }
         plot->legend->setVisible(true);
         plot->replot();
 
@@ -222,41 +231,51 @@ MainWindow::MainWindow(QWidget *parent) :
 
     if( programMode == 2){
         plot->xAxis->setLabel("freq. [MHz]");
-        plot->yAxis->setLabel("power [mW]");
+        plot->yAxis->setLabel("DPM power [mW]");
         plot->addGraph();
-        plot->graph(0)->setPen(QPen(Qt::blue)); // for y, power meter
-        plot->graph(0)->setName("Power Meter");
+        plot->graph(0)->setPen(QPen(Qt::blue)); // for y, DPM
+        plot->graph(0)->setName("DPM");
 
         plot->addGraph(plot->xAxis, plot->yAxis2);
         plot->graph(1)->setPen(QPen(Qt::red)); // for y2, DMM
         plot->graph(1)->setName("DMM");
         plot->yAxis2->setVisible(true);
-        plot->yAxis2->setLabel("power [mV]");
+        plot->yAxis2->setLabel("DMM power [mV]");
         plot->legend->setVisible(true);
         plot->replot();
 
-        auxPlot->xAxis->setLabel("Power Meter [mW]");
+        auxPlot->xAxis->setLabel("DPM [mW]");
         auxPlot->yAxis->setLabel("DMM [mV]");
         auxPlot->addGraph();
-        auxPlot->graph(0)->setPen(QPen(Qt::blue)); // for y, power meter
+        auxPlot->graph(0)->setPen(QPen(Qt::blue)); // for y, DPM
+        auxPlot->graph(0)->setLineStyle(QCPGraph::lsNone);
+        auxPlot->graph(0)->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssCross, 5));
 
         auxPlot->replot();
+
+        ui->lineEdit_PowerStart->setEnabled(false);
+        ui->lineEdit_PowerEnd->setEnabled(false);
+        ui->spinBox_PowerStep->setEnabled(false);
     }
 
     if( programMode == 3 ){
         plot->xAxis->setLabel("freq. [MHz]");
-        plot->yAxis->setLabel("power [mW]");
         plot->addGraph();
-        plot->graph(0)->setPen(QPen(Qt::blue)); // for y, power meter
-        if( hasPowerMeter ) plot->graph(0)->setName("Power Meter");
-        if( hasDMM )        plot->graph(0)->setName("DMM");
+        plot->graph(0)->setPen(QPen(Qt::blue)); // for y, DPM
+        if( hasPowerMeter ) {
+            plot->graph(0)->setName("DPM");
+            plot->yAxis->setLabel("DPM power [mW]");
+        }
+        if( hasDMM ) {
+            plot->graph(0)->setName("DMM");
+            plot->yAxis->setLabel("DMM power [mW]");
+        }
         plot->legend->setVisible(true);
         plot->replot();
 
 
         auxPlot->xAxis->setLabel("freq. [MHz]");
-        auxPlot->yAxis->setLabel("Power [dBm]");
-
+        auxPlot->yAxis->setLabel("Input power [dBm]");
         colorMap = new QCPColorMap(auxPlot->xAxis, auxPlot->yAxis);
 
         colorMap->data()->setRange(QCPRange(3900*24, 4000*24), QCPRange(-50,10));// set the x, y axis range
@@ -266,7 +285,12 @@ MainWindow::MainWindow(QWidget *parent) :
         auxPlot->plotLayout()->addElement(0, 1, colorScale); // add it to the right of the main axis rect
         colorScale->setType(QCPAxis::atRight); // scale shall be vertical bar with tick/axis labels right (actually atRight is already the default)
         colorMap->setColorScale(colorScale); // associate the color map with the color scale
-        colorScale->axis()->setLabel("Power [mW]");
+        if( hasPowerMeter){
+            colorScale->axis()->setLabel("DPM power [mW]");
+        }
+        if( hasDMM){
+            colorScale->axis()->setLabel("DMM power [mV]");
+        }
 
         auxPlot->replot();
 
@@ -449,7 +473,7 @@ void MainWindow::on_pushButton_Sweep_clicked()
                     x.push_back(freq * multi);
 
                     double readingPM, readingDMM;
-                    //get powerMeter reading; change the power meter freq., then read
+                    //get powerMeter reading; change the DPM freq., then read
                     if( hasPowerMeter ){
                         QString freqCmd = "sens:freq ";
                         QString freqStr;
@@ -534,6 +558,8 @@ void MainWindow::on_pushButton_Sweep_clicked()
 
                     if(hasPowerMeter && hasDMM){
                         y.push_back(readingPM);
+                        y2.push_back(readingDMM);
+
                         if( i == 1) {
                             yMin = readingPM;
                             xMin = freq;
@@ -548,8 +574,6 @@ void MainWindow::on_pushButton_Sweep_clicked()
                         plot->graph(0)->clearData();
                         plot->graph(0)->setData(x,y);
                         plot->yAxis->rescale();
-
-                        y2.push_back(readingDMM);
 
                         plot->graph(1)->clearData();
                         plot->graph(1)->setData(x,y2);
@@ -604,15 +628,15 @@ void MainWindow::on_pushButton_Sweep_clicked()
                     x.push_back(freq * multi);
 
                     double readingPM, readingDMM;
-                    //get powerMeter reading; change the power meter freq., then read
+                    //get powerMeter reading; change the DPM freq., then read
                     if( hasPowerMeter ){
                         if(!sweepOnOff) break;
 
-                        plot->graph(0)->setName("Power Meter, " + QString::number(power) + " dBm");
+                        plot->graph(0)->setName("DPM, " + QString::number(power) + " dBm");
 
                         QString freqCmd = "sens:freq ";
                         QString freqStr;
-                        freqStr.sprintf("%6.2f",freq/1000.*24); // in GHz, also with 4 and 6 mulipiler, the Power Meter use GHz
+                        freqStr.sprintf("%6.2f",freq/1000.*24); // in GHz, also with 4 and 6 mulipiler, the DPM use GHz
                         freqStr.remove(" ");
                         freqCmd = freqCmd + freqStr;
                         //qDebug() << "-----------" << freqCmd;
@@ -995,7 +1019,7 @@ void MainWindow::on_actionSave_Data_triggered()
 void MainWindow::on_pushButton_ReadPower_clicked()
 {
     if( hasPowerMeter ){
-        LogMsg("====== Read power from Power Meter.");
+        LogMsg("====== Read power from DPM.");
         sprintf(powerMeter->cmd, "sens:freq?\n");
         powerMeter->Ask(powerMeter->cmd);
 
@@ -1082,8 +1106,9 @@ void MainWindow::on_pushButton_RFOnOff_clicked()
         }
         write2Generator("OUTP:STAT ON");
         controlOnOFF(false);
+        ui->doubleSpinBox_Power->setEnabled(true);
 
-        //Set power meter freq;
+        //Set DPM freq;
         if(hasPowerMeter){
             QString freqCmd = "sens:freq ";
             QString freqStr;
@@ -1147,11 +1172,11 @@ void MainWindow::on_comboBox_yAxis_currentIndexChanged(int index)
 
         if(index == 0){
             plot->yAxis->setScaleType(QCPAxis::stLinear);
-            LogMsg("Power Meter changes to linear-y");
+            LogMsg("DPM changes to linear-y");
         }else if( index == 1){
             plot->yAxis->setScaleType(QCPAxis::stLogarithmic);
             plot->yAxis->setRange(yMin, yMax);
-            LogMsg("Power Meter changes to log-y");
+            LogMsg("DPM changes to log-y");
         }else{
             // cal dB
             dB.clear();
@@ -1162,7 +1187,7 @@ void MainWindow::on_comboBox_yAxis_currentIndexChanged(int index)
             plot->graph(0)->clearData();
             plot->graph(0)->addData(x, dB);
             plot->yAxis->setLabel("power [dBm]");
-            LogMsg("Power Meter changes to dB-y");
+            LogMsg("DPM changes to dB-y");
         }
 
         plot->yAxis->rescale();
@@ -1267,8 +1292,8 @@ void MainWindow::checkPowerMeterFreq(double freq)
     double DPMfreq = freq *24 /1000.; // in GHz with 24x multiplier
     if( DPMfreq < 75 || DPMfreq > 110){
         LogMsg("##################################################", Qt::red);
-        LogMsg("The freq in the power meter : " + QString::number(DPMfreq) + " GHz.", Qt::red);
-        LogMsg("Out of the range of the Digital Power meter!", Qt::red);
+        LogMsg("The freq in the DPM : " + QString::number(DPMfreq) + " GHz.", Qt::red);
+        LogMsg("Out of the range of the DPM!", Qt::red);
         LogMsg("##################################################", Qt::red);
     }
 }
@@ -1278,7 +1303,7 @@ void MainWindow::on_pushButton_GetNoPoint_clicked()
     sprintf(powerMeter->cmd, "calc:aver:coun?\n");
     int ans = (powerMeter->Ask(powerMeter->cmd)).toInt();
     ui->spinBox_AveragePoints->setValue(ans);
-    LogMsg(" Power Meter no. of points : " + QString::number(ans) + ".");
+    LogMsg(" DPM no. of points : " + QString::number(ans) + ".");
 }
 
 void MainWindow::on_spinBox_AveragePoints_editingFinished()
