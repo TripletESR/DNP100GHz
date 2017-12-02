@@ -92,18 +92,18 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(generator, &QSerialPort::readyRead, this, &MainWindow::readFromGenerator);
 
     if(generator->open(QIODevice::ReadWrite)){
-        if( generatorType == smallGenerator){
-            LogMsg("The SMALL generator is connected in " + generatorPortName + ".");
+        if( generatorType == SG6000LDQ){
+            LogMsg("The SG6000LDQ is connected in " + generatorPortName + ".");
         }
         if( generatorType == HMCT2220){
-            LogMsg("The HMC-T2220 generator is connected in " + generatorPortName + ".");
+            LogMsg("The HMC-T2220 is connected in " + generatorPortName + ".");
         }
         ui->statusBar->setToolTip( tr("The generator is connected."));
         controlOnOFF(true);
         ui->pushButton_Sweep->setEnabled(true);
         write2Generator("OUTP:STAT OFF");
 
-        if( generatorType == smallGenerator){
+        if( generatorType == SG6000LDQ){
             ui->lineEdit_PowerStart->setEnabled(false);
             ui->lineEdit_PowerEnd->setEnabled(false);
             ui->spinBox_PowerStep->setEnabled(false);
@@ -177,19 +177,19 @@ MainWindow::MainWindow(QWidget *parent) :
     qDebug() << "has POwer Meter ?" << hasPowerMeter;
     qDebug() << "has DMM ?" << hasDMM;
     qDebug() << "generator Type ?" << generatorType;
-    qDebug() << "samll generator ? " << (generatorType == smallGenerator);
+    qDebug() << "samll generator ? " << (generatorType == SG6000LDQ);
     qDebug() << "HMC-T2220 generator ? " << (generatorType == HMCT2220);
 
     //###################### Program mode depends on connected device
 
     LogMsg(" ######################### ");
-    if( generatorType == smallGenerator && (hasPowerMeter ^ hasDMM)) {
+    if( generatorType == SG6000LDQ && (hasPowerMeter ^ hasDMM)) {
         programMode = 1;
         if(hasPowerMeter){
-            LogMsg("Program mode = 1, simple measurement with Small generator + DPM", Qt::blue);
+            LogMsg("Program mode = 1, simple measurement with SG6000LDQ + DPM", Qt::blue);
         }
         if(hasDMM){
-            LogMsg("Program mode = 1, simple measurement with Small generator + DMM", Qt::blue);
+            LogMsg("Program mode = 1, simple measurement with SG6000LDQ + DMM", Qt::blue);
             ui->spinBox_Dwell->setMinimum(0);
         }
     }else if( hasPowerMeter && hasDMM) {
@@ -314,6 +314,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->spinBox_Dwell->setValue(400);
     if(!hasPowerMeter && hasDMM ) ui->spinBox_Dwell->setValue(0);
     if(programMode == 4 ) ui->spinBox_Dwell->setValue(0);
+    if(generatorType == SG6000LDQ) ui->spinBox_Dwell->setValue(20);
     ui->lineEdit_StepSize->setText("1 MHz");
     ui->lineEdit_RunTime->setText("~20.100 sec");
     ui->lineEdit_Multiplier->setText(QString::number(x4*x6));
@@ -399,7 +400,7 @@ void MainWindow::on_pushButton_Sweep_clicked()
         ui->checkBox_Normalize->setEnabled(false);
 
         ui->pushButton_Sweep->setStyleSheet("background-color: rgb(0,255,0)");
-        if(generatorType == smallGenerator) write2Generator("*BUZZER OFF");
+        if(generatorType == SG6000LDQ) write2Generator("*BUZZER OFF");
 
         write2Generator("OUTP:STAT ON"); // switch on RF
 
@@ -455,7 +456,7 @@ void MainWindow::on_pushButton_Sweep_clicked()
                         } // end of for-loop for freqeuncy
                     } // end of for-loop for power
 
-                }else if(generatorType == smallGenerator){
+                }else if(generatorType == SG6000LDQ){
                     for( int i = 1 ; i <= points; i ++){
                         if(!sweepOnOff) goto endloop;
                         double freq = start + (i-1) * step;
@@ -485,7 +486,7 @@ void MainWindow::on_pushButton_Sweep_clicked()
                     qDebug() << i << "," <<  freq << "GHz";
 
                     // set generator freqeuncey
-                    if( generatorType == smallGenerator){
+                    if( generatorType == SG6000LDQ){
                         QString input;
                         input.sprintf("FREQ:CW %fMHz", freq*1000.);
                         write2Generator(input);
@@ -760,7 +761,7 @@ void MainWindow::on_pushButton_Sweep_clicked()
             ui->checkBox_Normalize->setEnabled(true);
         }
 
-        if( generatorType == smallGenerator){
+        if( generatorType == SG6000LDQ){
             write2Generator("OUTP:STAT OFF"); // switch off RF
             write2Generator("*BUZZER ON");
         }
@@ -810,7 +811,7 @@ void MainWindow::findSeriesPortDevices()
         generatorCount = 0;
         if(info.serialNumber() == "DQ000VJLA" && info.manufacturer() == "FTDI" ){
             generatorPortName = info.portName();
-            generatorType = smallGenerator;
+            generatorType = SG6000LDQ;
             generatorCount ++;
         }
 
@@ -862,7 +863,7 @@ void MainWindow::controlOnOFF(bool IO)
 
     ui->lineEdit_Freq->setEnabled(IO);
 
-    if(generatorType == smallGenerator){
+    if(generatorType == SG6000LDQ){
         ui->doubleSpinBox->setEnabled(IO);
     }
 
@@ -951,7 +952,7 @@ void MainWindow::on_lineEdit_Stop_textChanged(const QString &arg1)
 
 void MainWindow::on_doubleSpinBox_Power_valueChanged(double arg1)
 {
-    if( generatorType == smallGenerator){
+    if( generatorType == SG6000LDQ){
         write2Generator("PWR " + QString::number(arg1));
     }
     if( generatorType == HMCT2220){
@@ -1135,7 +1136,7 @@ void MainWindow::on_pushButton_RFOnOff_clicked()
         ui->pushButton_RFOnOff->setStyleSheet("background-color: rgb(0,255,0)");
         double freq = ui->lineEdit_Freq->text().toDouble();
         double multi = ui->lineEdit_Multiplier->text().toDouble();
-        if(generatorType == smallGenerator) {
+        if(generatorType == SG6000LDQ) {
             QString inputStr;
             inputStr.sprintf("FREQ:CW %fMHz", freq*1000);
             write2Generator(inputStr);
@@ -1153,6 +1154,11 @@ void MainWindow::on_pushButton_RFOnOff_clicked()
         controlOnOFF(false);
         ui->doubleSpinBox_Power->setEnabled(true);
         ui->lineEdit_Freq->setEnabled(true);
+        ui->lineEdit->setEnabled(true);
+        ui->pushButton_SendCommand->setEnabled(true);
+        if( generatorType == SG6000LDQ){
+            ui->doubleSpinBox->setEnabled(true);
+        }
 
         //Set DPM freq;
         if(hasPowerMeter){
@@ -1551,7 +1557,7 @@ void MainWindow::on_lineEdit_Freq_returnPressed()
 {
     double freq = ui->lineEdit_Freq->text().toDouble();
     double multi = ui->lineEdit_Multiplier->text().toDouble();
-    if( generatorType == smallGenerator){
+    if( generatorType == SG6000LDQ){
         QString inputStr;
         inputStr.sprintf("FREQ:CW %fMHz", freq*1000.); // in MHz
         write2Generator(inputStr);

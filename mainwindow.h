@@ -12,7 +12,7 @@ class MainWindow;
 }
 
 enum generator_Type{
-    smallGenerator,
+    SG6000LDQ,
     HMCT2220
 };
 
