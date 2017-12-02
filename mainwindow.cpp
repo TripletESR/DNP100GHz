@@ -1505,6 +1505,23 @@ void MainWindow::on_verticalSlider_power_valueChanged(int value)
         y.push_back(z[value-1][i]);
     }
 
+    // change plot name
+    double power = y2[value-1];
+    if( hasPowerMeter){
+        if( ui->checkBox_Normalize->isChecked()){
+            plot->graph(0)->setName("DPM normalized, " + QString::number(power) + " dBm");
+        }else{
+            plot->graph(0)->setName("DPM, " + QString::number(power) + " dBm");
+        }
+    }
+    if(hasDMM){
+        if( ui->checkBox_Normalize->isChecked()){
+            plot->graph(0)->setName("DMM normalized, " + QString::number(power) + " dBm");
+        }else{
+            plot->graph(0)->setName("DMM, " + QString::number(power) + " dBm");
+        }
+    }
+
     // plotgraph
     plot->graph(0)->clearData();
     plot->graph(0)->setData(x,y);
