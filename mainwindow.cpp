@@ -313,6 +313,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->spinBox_Points->setValue(101);
     ui->spinBox_Dwell->setValue(400);
     if(!hasPowerMeter && hasDMM ) ui->spinBox_Dwell->setValue(0);
+    if(programMode == 4 ) ui->spinBox_Dwell->setValue(0);
     ui->lineEdit_StepSize->setText("1 MHz");
     ui->lineEdit_RunTime->setText("~20.100 sec");
     ui->lineEdit_Multiplier->setText(QString::number(x4*x6));
@@ -429,7 +430,7 @@ void MainWindow::on_pushButton_Sweep_clicked()
                     double powerStepSize = (powerEnd-powerStart)/(powerStep-1);
 
 
-                    for( int j = 1; j < powerStep; j++){
+                    for( int j = 1; j <= powerStep; j++){
                         if(!sweepOnOff) goto endloop;
                         double power = powerStart + (j-1) * powerStepSize;
                         //set HMC-T2220 power
@@ -1208,6 +1209,9 @@ void MainWindow::on_comboBox_yAxis_currentIndexChanged(int index)
 
     if( programMode == 2 ) return;
 
+    ui->checkBox_Normalize->setChecked(false);
+    on_checkBox_Normalize_clicked(false);
+
     plot->graph(0)->clearData();
     plot->graph(0)->addData(x, y);
     plot->yAxis->setLabel("Power [mW]");
@@ -1246,33 +1250,33 @@ void MainWindow::on_comboBox_yAxis_currentIndexChanged(int index)
 
     if(hasDMM){
         double yMax = 0, yMin = 0;
-        for(int i = 0; i < y2.size(); i++){
-            if(yMax < y2[i]) yMax = y2[i];
-            if(yMin > y2[i]) yMin = y2[i];
+        for(int i = 0; i < y.size(); i++){
+            if(yMax < y[i]) yMax = y[i];
+            if(yMin > y[i]) yMin = y[i];
         }
         qDebug() << yMin << "," << yMax;
 
         if(index == 0){
-            plot->yAxis2->setScaleType(QCPAxis::stLinear);
+            plot->yAxis->setScaleType(QCPAxis::stLinear);
             LogMsg("DMM changes to linear-y");
         }else if( index == 1){
-            plot->yAxis2->setScaleType(QCPAxis::stLogarithmic);
-            plot->yAxis2->setRange(yMin, yMax);
+            plot->yAxis->setScaleType(QCPAxis::stLogarithmic);
+            plot->yAxis->setRange(yMin, yMax);
             LogMsg("DMM changes to log-y");
         }else{
             // cal dB2
             dB2.clear();
-            for(int i = 0; i < y2.size(); i++){
-                dB2.push_back( 10 * qLn(y2[i]/yMax)/qLn(10));
+            for(int i = 0; i < y.size(); i++){
+                dB2.push_back( 10 * qLn(y[i]/yMax)/qLn(10));
             }
-            plot->yAxis2->setScaleType(QCPAxis::stLinear);
-            plot->graph(1)->clearData();
-            plot->graph(1)->addData(x, dB2);
-            plot->yAxis2->setLabel("power [dB]");
+            plot->yAxis->setScaleType(QCPAxis::stLinear);
+            plot->graph(0)->clearData();
+            plot->graph(0)->addData(x, dB2);
+            plot->yAxis->setLabel("power [dB]");
             LogMsg("DMM changes to dB-y");
         }
 
-        plot->yAxis2->rescale();
+        plot->yAxis->rescale();
         plot->replot();
     }
 
@@ -1280,6 +1284,9 @@ void MainWindow::on_comboBox_yAxis_currentIndexChanged(int index)
 
 void MainWindow::on_spinBox_Average_valueChanged(int arg1)
 {
+    if( x.isEmpty()) return;
+    if(programMode == 2) return;
+
     int index = ui->comboBox_yAxis->currentIndex();
 
     if( arg1 == 1){
@@ -1367,6 +1374,11 @@ void MainWindow::on_lineEdit_PowerStart_textChanged(const QString &arg1)
     double end = ui->lineEdit_PowerEnd->text().toDouble();
     int step = ui->spinBox_PowerStep->value();
 
+    if( arg1.toDouble() == end){
+        step = 1;
+        ui->spinBox_PowerStep->setValue(1);
+    }
+
     double stepSize = (end-arg1.toDouble())/(step-1);
     ui->lineEdit_PowerStepSize->setText(QString::number(stepSize) + " dBm");
 
@@ -1381,6 +1393,11 @@ void MainWindow::on_lineEdit_PowerEnd_textChanged(const QString &arg1)
 {
     double start = ui->lineEdit_PowerStart->text().toDouble();
     int step = ui->spinBox_PowerStep->value();
+
+    if( arg1.toDouble() == start){
+        step = 1;
+        ui->spinBox_PowerStep->setValue(1);
+    }
 
     double stepSize = (arg1.toDouble()-start)/(step-1);
     ui->lineEdit_PowerStepSize->setText(QString::number(stepSize) + " dBm");
@@ -1551,6 +1568,13 @@ void MainWindow::on_verticalSlider_power_valueChanged(int value)
         LogMsg("no data" , Qt::red);
         return;
     }
+
+    // a trick to stop on_combBox_yAxis_currentIndexChanged()
+    int old_programMode = programMode;
+    programMode = 2;
+    ui->comboBox_yAxis->setCurrentIndex(0);
+    programMode = old_programMode;
+
     //if( y2.size() != z->size()) {
     //    LogMsg("data crrupted" , Qt::red);
     //    return;
