@@ -174,6 +174,12 @@ MainWindow::MainWindow(QWidget *parent) :
         ui->horizontalSlider_B->setEnabled(false);
     }
 
+    qDebug() << "has POwer Meter ?" << hasPowerMeter;
+    qDebug() << "has DMM ?" << hasDMM;
+    qDebug() << "generator Type ?" << generatorType;
+    qDebug() << "samll generator ? " << (generatorType == smallGenerator);
+    qDebug() << "HMC-T2220 generator ? " << (generatorType == HMCT2220);
+
     //###################### Program mode depends on connected device
 
     LogMsg(" ######################### ");
@@ -184,7 +190,7 @@ MainWindow::MainWindow(QWidget *parent) :
         }
         if(hasDMM){
             LogMsg("Program mode = 1, simple measurement with Small generator + DMM", Qt::blue);
-            ui->spinBox_Dwell->setMinimum(1);
+            ui->spinBox_Dwell->setMinimum(0);
         }
     }else if( hasPowerMeter && hasDMM) {
         programMode = 2;
@@ -200,18 +206,20 @@ MainWindow::MainWindow(QWidget *parent) :
         }
         if(hasDMM){
             LogMsg("Program mode = 3, Measurement with HMC-T2220 + DMM", Qt::blue);
-            ui->spinBox_Dwell->setMinimum(1);
+            ui->spinBox_Dwell->setMinimum(0);
         }
     }else{
         programMode = 4;
         LogMsg("Program mode = NA. Only generator is online.", Qt::blue);
-        ui->spinBox_Dwell->setMinimum(1);
+        ui->spinBox_Dwell->setMinimum(0);
     }
 
     //test
     //programMode = 3;
     //hasDMM = true;
     //ui->pushButton_Sweep->setEnabled(true);
+
+    qDebug() << "program Mode ?" << programMode;
 
     //########################## Set up the plot according to the program mode
 
@@ -262,16 +270,14 @@ MainWindow::MainWindow(QWidget *parent) :
         ui->lineEdit_PowerEnd->setEnabled(false);
         ui->spinBox_PowerStep->setEnabled(false);
 
+        ui->actionSave_2_D_plot->setEnabled(true);
     }
 
     if( programMode == 3 ){
         plot->xAxis->setLabel("freq. [GHz]");
         plot->addGraph();
         plot->legend->setVisible(true);
-        ui->checkBox_Normalize->setChecked(false);
-        on_checkBox_Normalize_clicked(false);
         plot->replot();
-
         auxPlot->xAxis->setLabel("freq. [GHz]");
         auxPlot->yAxis->setLabel("Input power [dBm]");
         colorMap = new QCPColorMap(auxPlot->xAxis, auxPlot->yAxis);
@@ -294,6 +300,8 @@ MainWindow::MainWindow(QWidget *parent) :
 
         ui->actionSave_2_D_plot->setEnabled(true);
         ui->checkBox_Normalize->setEnabled(true);
+        ui->checkBox_Normalize->setChecked(false);
+        on_checkBox_Normalize_clicked(false);
     }
 
     ui->verticalSlider_power->setEnabled(false);
@@ -304,6 +312,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->lineEdit_Stop->setText("4.0");
     ui->spinBox_Points->setValue(101);
     ui->spinBox_Dwell->setValue(400);
+    if(!hasPowerMeter && hasDMM ) ui->spinBox_Dwell->setValue(0);
     ui->lineEdit_StepSize->setText("1 MHz");
     ui->lineEdit_RunTime->setText("~20.100 sec");
     ui->lineEdit_Multiplier->setText(QString::number(x4*x6));
@@ -376,7 +385,6 @@ void MainWindow::on_pushButton_Sweep_clicked()
 {
     sweepOnOff = !sweepOnOff;
 
-
     if( sweepOnOff ){
         LogMsg("======= Sweeping Start! ", Qt::blue);
         controlOnOFF(false);
@@ -387,6 +395,7 @@ void MainWindow::on_pushButton_Sweep_clicked()
         ui->spinBox_AveragePoints->setEnabled(false);
         ui->pushButton_GetNoPoint->setEnabled(false);
         ui->verticalSlider_power->setEnabled(false);
+        ui->checkBox_Normalize->setEnabled(false);
 
         ui->pushButton_Sweep->setStyleSheet("background-color: rgb(0,255,0)");
         if(generatorType == smallGenerator) write2Generator("*BUZZER OFF");
@@ -396,7 +405,7 @@ void MainWindow::on_pushButton_Sweep_clicked()
         //Looping===================
         QString stepstr = ui->lineEdit_StepSize->text();
         stepstr.chop(3);
-        double step = stepstr.toDouble();
+        double step = stepstr.toDouble() / 1000; //in GHz
         double start = ui->lineEdit_Start->text().toDouble();
         //double stop = ui->lineEdit_Stop->text().toDouble();
         int points = ui->spinBox_Points->value();
@@ -421,13 +430,13 @@ void MainWindow::on_pushButton_Sweep_clicked()
 
 
                     for( int j = 1; j < powerStep; j++){
-                        if(!sweepOnOff) break;
+                        if(!sweepOnOff) goto endloop;
                         double power = powerStart + (j-1) * powerStepSize;
                         //set HMC-T2220 power
                         write2Generator("Power " + QString::number(power));
 
                         for( int i = 1 ; i <= points; i ++){
-                            if(!sweepOnOff) break;
+                            if(!sweepOnOff) goto endloop;
                             double freq = start + (i-1) * step;
                             qDebug() << "(" << i << "," << j << ") = (" <<  freq << " GHz," << power <<" dBm)";
 
@@ -447,7 +456,7 @@ void MainWindow::on_pushButton_Sweep_clicked()
 
                 }else if(generatorType == smallGenerator){
                     for( int i = 1 ; i <= points; i ++){
-                        if(!sweepOnOff) break;
+                        if(!sweepOnOff) goto endloop;
                         double freq = start + (i-1) * step;
                         qDebug() <<  i << "," <<  freq << " GHz" ;
 
@@ -469,7 +478,7 @@ void MainWindow::on_pushButton_Sweep_clicked()
 
             }else{ // programMode == 1, 2
                 for( int i = 1 ; i <= points; i ++){
-                    if(!sweepOnOff) break;
+                    if(!sweepOnOff) goto endloop;
 
                     double freq = start + (i-1) * step;
                     qDebug() << i << "," <<  freq << "GHz";
@@ -620,19 +629,24 @@ void MainWindow::on_pushButton_Sweep_clicked()
             colorMap->data()->setSize(points, powerStep); // this is just the grid size.
 
             for( int j = 1; j <= powerStep; j++){
-                if(!sweepOnOff) break;
+                if(!sweepOnOff) goto endloop;
                 double power = powerStart + (j-1) * powerStepSize;
                 y2.push_back(power);
 
                 //set HMC-T2220 power
                 write2Generator("Power " + QString::number(power));
 
+                double normFactor = 1;
+                if( ui->checkBox_Normalize->isChecked()) {
+                    normFactor = dBm2mW(power);  // in mW
+                }
+
                 x.clear();
                 y.clear();
                 for( int i = 1 ; i <= points; i ++){
-
+                    if(!sweepOnOff) goto endloop;
                     double freq = start + (i-1) * step;
-                    qDebug() << "(" << i << "," << j << ") = (" <<  freq << " GHz," << power <<" dBm)";
+                    qDebug() << "(" << i << "," << j << ") = (" <<  freq << " GHz," << power <<" dBm, " << normFactor << " mW)";
 
                     // set generator freqeuncey
                     QString input;
@@ -644,8 +658,7 @@ void MainWindow::on_pushButton_Sweep_clicked()
                     double readingPM, readingDMM;
                     //get powerMeter reading; change the DPM freq., then read
                     if( hasPowerMeter ){
-                        if(!sweepOnOff) break;
-
+                        if(!sweepOnOff) goto endloop;
                         if( ui->checkBox_Normalize->isChecked()){
                             plot->graph(0)->setName("DPM normalized, " + QString::number(power) + " dBm");
                         }else{
@@ -694,28 +707,24 @@ void MainWindow::on_pushButton_Sweep_clicked()
                         sprintf(DMM->cmd, ":READ?\n");
                         readingDMM = DMM->Ask(DMM->cmd).toDouble() * 1000;
 
-                        //wait for waittime, for the powereter to measure the freq.
+                        //wait for waittime, for the power meter to measure the freq.
                         QEventLoop eventLoop;
                         QTimer::singleShot(waitTime, &eventLoop, SLOT(quit()));
                         eventLoop.exec();
                     }
 
                     double reading = 0;
-                    double normFactor = 1;
-                    if( ui->checkBox_Normalize->isChecked()) {
-                        normFactor = pow(10, power/10.);  // in mW
-                    }
                     if( hasPowerMeter && !hasDMM){
-                        reading = readingPM / normFactor;
+                        reading = readingPM ;
                     }else if( !hasPowerMeter && hasDMM ){
-                        reading = readingDMM / normFactor;
+                        reading = readingDMM;
                     }else{
                         reading = 0.;
                     }
 
                     // fill plots
-                    y.push_back(reading);
-                    z[j-1].push_back(reading);
+                    y.push_back(reading / normFactor);
+                    z[j-1].push_back(reading); // z always store un-normalized data
 
                     if( i == 1) {
                         yMin = reading;
@@ -733,7 +742,7 @@ void MainWindow::on_pushButton_Sweep_clicked()
                     plot->yAxis->rescale();
                     plot->replot();
 
-                    colorMap->data()->setData(freq*multi, power, reading);
+                    colorMap->data()->setData(freq*multi, power, reading / normFactor);
                     colorMap->rescaleDataRange();
                     auxPlot->replot();
 
@@ -741,13 +750,13 @@ void MainWindow::on_pushButton_Sweep_clicked()
                 } // end of for-loop for freqeuncy
                // qDebug() << z[j-1];
             } // end of for-loop for power
-
         }
-
+        endloop: ;
         if(programMode == 3){
             ui->verticalSlider_power->setMaximum(y2.size());
             ui->verticalSlider_power->setValue(y2.size());
             ui->verticalSlider_power->setEnabled(true);
+            ui->checkBox_Normalize->setEnabled(true);
         }
 
         if( generatorType == smallGenerator){
@@ -775,6 +784,7 @@ void MainWindow::on_pushButton_Sweep_clicked()
 
     ui->comboBox_yAxis->setEnabled(true);
     ui->spinBox_Average->setEnabled(true);
+
 
 }
 
@@ -822,6 +832,11 @@ void MainWindow::write2Generator(const QString &msg)
     const QString temp = msg + "\n";
     generator->write(temp.toStdString().c_str());
     LogMsg("Generator write : " + msg);
+
+    //wait for the serial port to respond.
+    QEventLoop eventLoop;
+    QTimer::singleShot(1, &eventLoop, SLOT(quit()));
+    eventLoop.exec();
 }
 
 void MainWindow::readFromGenerator()
@@ -871,7 +886,7 @@ void MainWindow::on_spinBox_Points_valueChanged(int arg1)
     double waitTime = ui->spinBox_Dwell->value();
     int powerStep = 1;
     if( generatorType== HMCT2220) powerStep = ui->spinBox_PowerStep->value();
-    double runTime = powerStep * arg1 * waitTime / 1000.;
+    double runTime = powerStep * arg1 * (waitTime+1) / 1000.;
     ui->lineEdit_StepSize->setText(QString::number(step) + " MHz");
     ui->lineEdit_RunTime->setText(QString::number(runTime) + " sec");
 }
@@ -879,7 +894,7 @@ void MainWindow::on_spinBox_Points_valueChanged(int arg1)
 void MainWindow::on_spinBox_Dwell_valueChanged(int arg1)
 {
     int points = ui->spinBox_Points->value();
-    double runTime = points * arg1 / 1000.;
+    double runTime = points * (arg1+1) / 1000.;
     ui->lineEdit_RunTime->setText("~" + QString::number(runTime) + " sec");
 }
 
@@ -1128,6 +1143,12 @@ void MainWindow::on_pushButton_RFOnOff_clicked()
             write2Generator("FREQ " + QString::number(freq*1000*multi/x6)+" MHz");
         }
         write2Generator("OUTP:STAT ON");
+
+        if( generatorType == HMCT2220){
+            double power = ui->doubleSpinBox_Power->value();
+            write2Generator("Power " + QString::number(power));
+        }
+
         controlOnOFF(false);
         ui->doubleSpinBox_Power->setEnabled(true);
         ui->lineEdit_Freq->setEnabled(true);
@@ -1381,7 +1402,7 @@ void MainWindow::on_spinBox_PowerStep_valueChanged(int arg1)
 
     double waitTime = ui->spinBox_Dwell->value();
     int step = ui->spinBox_Points->value();
-    double runTime = step * arg1 * waitTime / 1000.;
+    double runTime = step * arg1 * (waitTime+1) / 1000.;
 
     ui->lineEdit_RunTime->setText(QString::number(runTime) + " sec");
 }
@@ -1449,6 +1470,42 @@ void MainWindow::on_checkBox_Normalize_clicked(bool checked)
         }
     }
 
+    // if data is not empty, plot again
+
+    if(!x.isEmpty()){
+
+        double normFactor = 1;
+
+        for(int j = 0; j < y2.size() ; j++){
+            if( ui->checkBox_Normalize->isChecked()){
+                normFactor = dBm2mW(y2[j]);
+            }
+            for(int i = 0; i < x.size() ; i++){
+                colorMap->data()->setData(x[i], y2[j], z[j][i] / normFactor);
+            }
+        }
+        colorMap->data()->recalculateDataBounds();
+        colorMap->rescaleDataRange();
+        //double zMax = colorMap->dataRange().upper;
+        //colorScale->setDataRange(QCPRange(0, zMax));
+
+        auxPlot->replot();
+
+        int y2Index = ui->verticalSlider_power->value()-1;
+        y.clear();
+        if( ui->checkBox_Normalize->isChecked()){
+            normFactor = dBm2mW(y2[y2Index]);
+        }
+        for(int i = 0; i < x.size() ; i++){
+            y.push_back(z[y2Index][i] /  normFactor);
+        }
+
+        plot->graph(0)->clearData();
+        plot->graph(0)->setData(x,y);
+        plot->yAxis->rescale();
+        plot->replot();
+    }
+
     plot->replot();
     auxPlot->replot();
 }
@@ -1494,15 +1551,19 @@ void MainWindow::on_verticalSlider_power_valueChanged(int value)
         LogMsg("no data" , Qt::red);
         return;
     }
-    if( y2.size() != z->size()) {
-        LogMsg("data crrupted" , Qt::red);
-        return;
-    }
+    //if( y2.size() != z->size()) {
+    //    LogMsg("data crrupted" , Qt::red);
+    //    return;
+    //}
 
     // fill y with z[value-1]
+    double normFactor = 1;
+    if( ui->checkBox_Normalize->isChecked()){
+        normFactor = dBm2mW(y2[value-1]);
+    }
     y.clear();
     for(int i = 0; i < x.size() ; i++){
-        y.push_back(z[value-1][i]);
+        y.push_back(z[value-1][i] / normFactor);
     }
 
     // change plot name
