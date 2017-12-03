@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>DNP 100GHz -- Power Meter</string>
+   <string>DNP 100GHz</string>
   </property>
   <widget class="QWidget" name="centralWidget">
    <layout class="QGridLayout" name="gridLayout_3" rowstretch="1,1,3,1,2" columnstretch="1,1,1,1,1,0">

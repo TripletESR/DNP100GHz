@@ -183,18 +183,20 @@ MainWindow::MainWindow(QWidget *parent) :
     //###################### Program mode depends on connected device
 
     LogMsg(" ######################### ");
+    QString title_1 = "DNP 100GHz - ";
+    QString title_2;
     if( generatorType == SG6000LDQ && (hasPowerMeter ^ hasDMM)) {
         programMode = 1;
         if(hasPowerMeter){
-            LogMsg("Program mode = 1, simple measurement with SG6000LDQ + DPM", Qt::blue);
+            title_2 = "Program mode = 1, simple measurement with SG6000LDQ + DPM";
         }
         if(hasDMM){
-            LogMsg("Program mode = 1, simple measurement with SG6000LDQ + DMM", Qt::blue);
+            title_2 = "Program mode = 1, simple measurement with SG6000LDQ + DMM";
             ui->spinBox_Dwell->setMinimum(0);
         }
     }else if( hasPowerMeter && hasDMM) {
         programMode = 2;
-        LogMsg("Program mode = 2, Calibration.", Qt::blue);
+        title_2 = "Program mode = 2, Calibration.";
         if( generatorCount > 1){
             LogMsg("Two generators are online, using HMC-T2220.", Qt::blue);
         }
@@ -202,17 +204,20 @@ MainWindow::MainWindow(QWidget *parent) :
     }else if( generatorType == HMCT2220 && (hasPowerMeter ^ hasDMM)) {
         programMode = 3;
         if(hasPowerMeter){
-            LogMsg("Program mode = 3, Measurement with HMC-T2220 + DPM", Qt::blue);
+            title_2 = "Program mode = 3, Measurement with HMC-T2220 + DPM";
         }
         if(hasDMM){
-            LogMsg("Program mode = 3, Measurement with HMC-T2220 + DMM", Qt::blue);
+            title_2 = "Program mode = 3, Measurement with HMC-T2220 + DMM";
             ui->spinBox_Dwell->setMinimum(0);
         }
-    }else{
+    }else {
         programMode = 4;
-        LogMsg("Program mode = NA. Only generator is online.", Qt::blue);
+        title_2 = "Program mode = 4. Only generator is online or no device.";
         ui->spinBox_Dwell->setMinimum(0);
     }
+
+    LogMsg(title_2, Qt::blue);
+    this->setWindowTitle(title_1 + title_2 );
 
     //test
     //programMode = 3;
