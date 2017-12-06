@@ -90,6 +90,8 @@ private slots:
 
     void on_checkBox_Sync_clicked(bool checked);
 
+    void on_actionHelp_Page_triggered();
+
 private:
     Ui::MainWindow *ui;
 
@@ -126,6 +128,9 @@ private:
     QVector<double> * z; // for freq-power colorMap plot
 
     bool stopdBm2mW, stopmW2dBm;
+
+    QDialog * helpDialog;
+    QLabel * HelpLabel;
 
 };
 

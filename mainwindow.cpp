@@ -18,6 +18,15 @@ MainWindow::MainWindow(QWidget *parent) :
 
     z = NULL;
 
+    helpDialog = new QDialog(this);
+    HelpLabel = new QLabel();
+    helpDialog->setWindowTitle("Help");
+    QImage image(":fig.PNG");
+    HelpLabel->setPixmap(QPixmap::fromImage(image));
+
+    QVBoxLayout * helpDialogLayout = new QVBoxLayout(helpDialog);
+    helpDialogLayout->addWidget(HelpLabel);
+
     QDateTime date = QDateTime::currentDateTime();
     ui->textEdit_Log->append("============ Date : " + date.toString("yyyy-MM-dd HH:mm:ss"));
 
@@ -857,7 +866,7 @@ void MainWindow::findSeriesPortDevices()
             generatorCount ++;
         }
 
-        if(info.serialNumber() == "001396" && info.manufacturer() == "Hittite" ){
+        if(info.serialNumber() == "000889" && info.manufacturer() == "Hittite" ){
             //if(info.serialNumber() == "001396" && info.manufacturer() == "Microsoft" ){
             generatorPortName = info.portName();
             generatorType = HMCT2220;
@@ -1674,5 +1683,12 @@ void MainWindow::on_checkBox_Sync_clicked(bool checked)
         ui->horizontalSlider_B->setValue(valueA);
     }else{
         ui->horizontalSlider_B->setEnabled(true);
+    }
+}
+
+void MainWindow::on_actionHelp_Page_triggered()
+{
+    if( helpDialog->isHidden() ){
+        helpDialog->show();
     }
 }

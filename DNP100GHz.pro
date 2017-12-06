@@ -44,3 +44,10 @@ HEADERS += \
 
 FORMS += \
         mainwindow.ui
+
+DISTFILES += \
+    fig.PNG \
+    icon.ico
+
+RESOURCES += \
+    resource.qrc
