@@ -88,6 +88,8 @@ private slots:
 
     void on_verticalSlider_power_valueChanged(int value);
 
+    void on_checkBox_Sync_clicked(bool checked);
+
 private:
     Ui::MainWindow *ui;
 

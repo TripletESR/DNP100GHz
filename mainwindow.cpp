@@ -28,6 +28,10 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->actionSave_2_D_plot->setEnabled(false);
     ui->checkBox_Normalize->setEnabled(false);
 
+    QMessageBox msgBox;
+    msgBox.setWindowTitle("Program Mode.");
+    QString boxMsg;
+
     //##########################################################
     //============== opne power meter
     powerMeter = new QSCPI((ViRsrc) "GPIB0::4::INSTR"); // the DPM
@@ -42,6 +46,8 @@ MainWindow::MainWindow(QWidget *parent) :
         ui->pushButton_GetNoPoint->setEnabled(true);
         //get number of point
         on_pushButton_GetNoPoint_clicked();
+
+        boxMsg += "* Digital Power Meter (DPM) is online.\n";
 
     }else{
         LogMsg("DPM cannot be found or open.", Qt::red);
@@ -61,6 +67,9 @@ MainWindow::MainWindow(QWidget *parent) :
         hasDMM = true;
 
         ui->pushButton_ReadPower->setEnabled(true);
+
+        boxMsg += "* Digital Mulit-Meter (DMM) is online.\n";
+
     }else{
         LogMsg("DMM cannot be found or open.", Qt::red);
         DMM->ErrorMassage();
@@ -71,6 +80,9 @@ MainWindow::MainWindow(QWidget *parent) :
 
     if( !hasPowerMeter && !hasDMM){
         ui->pushButton_ReadPower->setEnabled(false);
+
+        boxMsg += "* No meter is online.\n";
+
     }
 
     //##########################################################
@@ -129,6 +141,20 @@ MainWindow::MainWindow(QWidget *parent) :
             ui->doubleSpinBox_Power->setValue(-50);
         }
 
+        if( generatorCount == 1){
+            if( generatorType == SG6000LDQ){
+                boxMsg += "* SG6000LDQ generator is online.\n";
+            }
+            if( generatorType == HMCT2220){
+                boxMsg += "* HMC-T2220 is online.\n";
+            }
+        }else if(generatorCount > 1){
+            boxMsg += "* SG6000LDQ and HMC-T2220 are online.\n";
+            boxMsg += "       --> HMC-T2220 is used.\n";
+        }else{
+            boxMsg += "* No generator is online.\n";
+        }
+
     }else{
         //QMessageBox::critical(this, tr("Error"), generator->errorString());
         LogMsg("Generator cannot be found on any COM port.", Qt::red);
@@ -142,6 +168,7 @@ MainWindow::MainWindow(QWidget *parent) :
         ui->lineEdit_PowerEnd->setEnabled(false);
         ui->spinBox_PowerStep->setEnabled(false);
 
+        boxMsg += "* No generator is online.\n";
     }
 
     //================== connect switch matrix
@@ -168,10 +195,15 @@ MainWindow::MainWindow(QWidget *parent) :
         ui->horizontalSlider_B->setValue(port & 2);
 
         switchConnected = true;
+
+        boxMsg += "* Switch Matrix is online.\n";
     }else{
         LogMsg("Connot find switch matrix.", Qt::red);
         ui->horizontalSlider_A->setEnabled(false);
         ui->horizontalSlider_B->setEnabled(false);
+        ui->checkBox_Sync->setEnabled(false);
+
+        boxMsg += "* Switch Matrix is off-line.\n";
     }
 
     qDebug() << "has POwer Meter ?" << hasPowerMeter;
@@ -182,6 +214,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
     //###################### Program mode depends on connected device
 
+    boxMsg += "\n";
     LogMsg(" ######################### ");
     QString title_1 = "DNP 100GHz - ";
     QString title_2;
@@ -218,6 +251,10 @@ MainWindow::MainWindow(QWidget *parent) :
 
     LogMsg(title_2, Qt::blue);
     this->setWindowTitle(title_1 + title_2 );
+
+    boxMsg += title_2;
+    msgBox.setText(boxMsg);
+    msgBox.exec();
 
     //test
     //programMode = 3;
@@ -1346,6 +1383,9 @@ void MainWindow::on_horizontalSlider_A_valueChanged(int value)
     if(!switchConnected) return;
     LogMsg("Set SwitchName A to port " + QString::number(value+1));
     SetSwitchMatrixPort("A", value);
+    if( ui->checkBox_Sync->isChecked()){
+        ui->horizontalSlider_B->setValue(value);
+    }
 }
 
 void MainWindow::on_horizontalSlider_B_valueChanged(int value)
@@ -1624,4 +1664,15 @@ void MainWindow::on_verticalSlider_power_valueChanged(int value)
     plot->yAxis->rescale();
     plot->replot();
 
+}
+
+void MainWindow::on_checkBox_Sync_clicked(bool checked)
+{
+    int valueA = ui->horizontalSlider_A->value();
+    if(checked){
+        ui->horizontalSlider_B->setEnabled(false);
+        ui->horizontalSlider_B->setValue(valueA);
+    }else{
+        ui->horizontalSlider_B->setEnabled(true);
+    }
 }
